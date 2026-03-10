@@ -25,5 +25,4 @@ class Database:
         db_name = os.getenv("DB_NAME", "test_db")
         return self.client[db_name]
 
-# 👇👇👇 QUAN TRỌNG NHẤT LÀ DÒNG NÀY (Bạn đang thiếu dòng này) 👇👇👇
 db = Database()

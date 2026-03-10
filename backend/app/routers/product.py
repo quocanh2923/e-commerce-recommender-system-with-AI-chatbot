@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body
 from typing import List
+from bson import ObjectId
+from bson.errors import InvalidId
 from app.models.product import Product
 from app.core.config import db
 
@@ -27,3 +29,53 @@ async def create_product(product: Product = Body(...)):
 async def list_products():
     products = await db.get_db()["products"].find().to_list(1000)
     return products
+
+
+# 3. API Lấy chi tiết một sản phẩm theo id
+@router.get("/{id}", response_description="Lấy chi tiết sản phẩm", response_model=Product)
+async def get_product(id: str):
+    try:
+        obj_id = ObjectId(id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID format không hợp lệ")
+
+    product = await db.get_db()["products"].find_one({"_id": obj_id})
+    if product is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm")
+    return product
+
+
+# 4. API Cập nhật sản phẩm
+@router.put("/{id}", response_description="Cập nhật sản phẩm", response_model=Product)
+async def update_product(id: str, product: Product = Body(...)):
+    try:
+        obj_id = ObjectId(id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID format không hợp lệ")
+
+    update_data = {k: v for k, v in product.dict(by_alias=True).items() if v is not None}
+    if "_id" in update_data:
+        del update_data["_id"]
+
+    if update_data:
+        result = await db.get_db()["products"].update_one({"_id": obj_id}, {"$set": update_data})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm để cập nhật")
+    # trả về bản ghi mới nhất
+    updated = await db.get_db()["products"].find_one({"_id": obj_id})
+    return updated
+
+
+# 5. API Xóa sản phẩm
+@router.delete("/{id}", response_description="Xóa sản phẩm")
+async def delete_product(id: str):
+    try:
+        obj_id = ObjectId(id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID format không hợp lệ")
+
+    result = await db.get_db()["products"].delete_one({"_id": obj_id})
+    if result.deleted_count == 1:
+        return {"message": "Xóa sản phẩm thành công"}
+    else:
+        raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm để xóa")
