@@ -1,34 +1,34 @@
-from fastapi import APIRouter, Body
-from typing import List
+from fastapi import APIRouter, Body, Depends
+from typing import List, Literal
+from datetime import datetime, timezone
 from app.models.interaction import Interaction
 from app.core.config import db
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
-# 1. API Lưu hành vi mới
-@router.post("/", response_description="Lưu hành vi người dùng mới", response_model=Interaction)
-async def create_interaction(interaction: Interaction = Body(...)):
-    """
-    Lưu hành vi (interaction) của người dùng.
-    Các hành vi hỗ trợ: view, add_to_cart, purchase
-    """
-    # Chuyển đổi dữ liệu từ dạng Model sang dict để lưu MongoDB
-    interaction_dict = interaction.dict(by_alias=True)
-    
-    # Bỏ trường _id đi để MongoDB tự tạo _id mới
-    if "_id" in interaction_dict:
-        del interaction_dict["_id"]
+class InteractionCreate(Interaction.__bases__[0]):
+    pass
 
-    # Lưu vào Collection tên là "interactions"
-    new_interaction = await db.get_db()["interactions"].insert_one(interaction_dict)
-    
-    # Tìm lại hành vi vừa tạo để trả về
-    created_interaction = await db.get_db()["interactions"].find_one({"_id": new_interaction.inserted_id})
-    
-    # Convert _id sang string
-    created_interaction["_id"] = str(created_interaction["_id"])
-    return created_interaction
+
+# 1. API Lưu hành vi mới (yêu cầu đăng nhập)
+@router.post("/", response_description="Lưu hành vi người dùng", response_model=Interaction)
+async def create_interaction(
+    product_id: str,
+    action_type: Literal["view", "add_to_cart", "purchase"],
+    current_user: dict = Depends(get_current_user)
+):
+    interaction_dict = {
+        "user_id": current_user["_id"],
+        "product_id": product_id,
+        "action_type": action_type,
+        "timestamp": datetime.now(timezone.utc),
+    }
+    result = await db.get_db()["interactions"].insert_one(interaction_dict)
+    created = await db.get_db()["interactions"].find_one({"_id": result.inserted_id})
+    created["_id"] = str(created["_id"])
+    return created
 
 
 # 2. API Lấy lịch sử hành vi của 1 người dùng
