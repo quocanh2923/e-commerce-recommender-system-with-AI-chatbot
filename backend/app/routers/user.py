@@ -1,74 +1,61 @@
-from fastapi import APIRouter, HTTPException, status, Body
-from typing import List
-from app.models.user import User, UserLogin
+from fastapi import APIRouter, HTTPException, status, Body, Depends
+from app.models.user import UserRegister, UserLogin, UserResponse, TokenResponse
 from app.core.config import db
+from app.core.security import hash_password, verify_password, create_access_token
+from app.core.dependencies import get_current_user
 
 router = APIRouter()
 
 
-# 1. API Đăng ký người dùng mới
-@router.post("/register", response_description="Đăng ký người dùng mới", response_model=User)
-async def register_user(user: User = Body(...)):
-    """
-    Đăng ký tài khoản mới.
-    Kiểm tra email và username không được trùng.
-    """
+# 1. Đăng ký tài khoản mới
+@router.post("/register", response_description="Đăng ký người dùng mới", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register_user(user: UserRegister = Body(...)):
     # Kiểm tra email đã tồn tại
-    existing_email = await db.get_db()["users"].find_one({"email": user.email})
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email đã được sử dụng"
-        )
-    
+    if await db.get_db()["users"].find_one({"email": user.email}):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email đã được sử dụng")
+
     # Kiểm tra username đã tồn tại
-    existing_username = await db.get_db()["users"].find_one({"username": user.username})
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username đã được sử dụng"
-        )
+    if await db.get_db()["users"].find_one({"username": user.username}):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username đã được sử dụng")
 
-    # Chuyển đổi dữ liệu từ dạng Model sang dict để lưu MongoDB
-    user_dict = user.dict(by_alias=True)
-    
-    # Bỏ trường id đi để MongoDB tự tạo _id mới
-    if "_id" in user_dict:
-        del user_dict["_id"]
+    user_dict = {
+        "username": user.username,
+        "email": user.email,
+        "password": hash_password(user.password),  # Hash trước khi lưu
+        "full_name": user.full_name,
+        "role": "user",
+    }
 
-    # Lưu vào Collection tên là "users"
-    new_user = await db.get_db()["users"].insert_one(user_dict)
-    
-    # Tìm lại người dùng vừa tạo để trả về
-    created_user = await db.get_db()["users"].find_one({"_id": new_user.inserted_id})
-    
-    # Xóa password trước khi trả về cho an toàn
-    del created_user["password"]
-    return created_user
+    result = await db.get_db()["users"].insert_one(user_dict)
+    created = await db.get_db()["users"].find_one({"_id": result.inserted_id})
+    created["_id"] = str(created["_id"])
+    return created
 
 
-# 2. API Đăng nhập
-@router.post("/login", response_description="Đăng nhập người dùng")
+# 2. Đăng nhập — trả về JWT token
+@router.post("/login", response_description="Đăng nhập", response_model=TokenResponse)
 async def login_user(login_data: UserLogin = Body(...)):
-    """
-    Đăng nhập bằng email và password.
-    """
-    # Tìm user theo email và password
-    user = await db.get_db()["users"].find_one({
-        "email": login_data.email,
-        "password": login_data.password
-    })
-    
-    if not user:
+    user = await db.get_db()["users"].find_one({"email": login_data.email})
+
+    if not user or not verify_password(login_data.password, user["password"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Sai email hoặc mật khẩu"
+            detail="Sai email hoặc mật khẩu",
+            headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Xóa password trước khi trả về
-    del user["password"]
+
+    access_token = create_access_token(data={"sub": str(user["_id"])})
+
     user["_id"] = str(user["_id"])
     return {
-        "message": "Đăng nhập thành công",
-        "user": user
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user,
     }
+
+
+# 3. Lấy thông tin user đang đăng nhập (route được bảo vệ)
+@router.get("/me", response_description="Thông tin user hiện tại", response_model=UserResponse)
+async def get_me(current_user: dict = Depends(get_current_user)):
+    return current_user
+
