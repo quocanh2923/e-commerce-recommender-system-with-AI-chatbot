@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import './ProductListingPage.css'
 
 const API_URL = 'http://127.0.0.1:8000'
 
-const CATEGORIES = ['Áo', 'Quần', 'Giày', 'Túi', 'Phụ kiện', 'Váy', 'Đồng hồ']
+const CATEGORIES = ['Áo', 'Quần', 'Giày', 'Túi', 'Phụ kiện', 'Váy', 'Đồng hồ', 'Đồ lót', 'Đồ bơi', 'Vớ']
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Mới nhất' },
   { value: 'price_asc', label: 'Giá: Thấp → Cao' },
@@ -88,15 +88,36 @@ export default function ProductListingPage() {
     fetchProducts(params, 0)
   }, [searchParams, fetchProducts])
 
-  // --- Áp dụng filter → cập nhật URL ---
-  const applyFilters = () => {
-    const params = {}
-    if (searchInput.trim()) params.search = searchInput.trim()
-    if (selectedCategory) params.category = selectedCategory
-    if (minPrice) params.min_price = minPrice
-    if (maxPrice) params.max_price = maxPrice
-    params.sort_by = sortBy
-    setSearchParams(params)
+  // --- Helper: cập nhật URL giữ nguyên các param khác ---
+  const updateParams = useCallback((overrides) => {
+    const current = Object.fromEntries(searchParams.entries())
+    const merged = { ...current, ...overrides }
+    // Xoá key rỗng
+    Object.keys(merged).forEach((k) => { if (!merged[k]) delete merged[k] })
+    if (!merged.sort_by) merged.sort_by = 'newest'
+    setSearchParams(merged)
+  }, [searchParams, setSearchParams])
+
+  // --- Debounce search: gõ xong 400ms mới search ---
+  const searchTimer = useRef(null)
+  const handleSearchChange = (value) => {
+    setSearchInput(value)
+    clearTimeout(searchTimer.current)
+    searchTimer.current = setTimeout(() => {
+      updateParams({ search: value.trim(), skip: undefined })
+    }, 400)
+  }
+
+  // --- Category: click thẳng → filter ngay ---
+  const handleCategoryClick = (cat) => {
+    const next = cat === selectedCategory ? '' : cat
+    setSelectedCategory(next)
+    updateParams({ category: next })
+  }
+
+  // --- Áp dụng chỉ cho khoảng giá ---
+  const applyPriceFilter = () => {
+    updateParams({ min_price: minPrice, max_price: maxPrice })
   }
 
   const clearFilters = () => {
@@ -148,8 +169,7 @@ export default function ProductListingPage() {
             className="sidebar-input"
             placeholder="Tên sản phẩm..."
             value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
+            onChange={(e) => handleSearchChange(e.target.value)}
           />
         </div>
 
@@ -159,7 +179,7 @@ export default function ProductListingPage() {
           <div className="category-list">
             <button
               className={`category-btn ${selectedCategory === '' ? 'active' : ''}`}
-              onClick={() => setSelectedCategory('')}
+              onClick={() => handleCategoryClick('')}
             >
               Tất cả
             </button>
@@ -167,7 +187,7 @@ export default function ProductListingPage() {
               <button
                 key={cat}
                 className={`category-btn ${selectedCategory === cat ? 'active' : ''}`}
-                onClick={() => setSelectedCategory(cat)}
+                onClick={() => handleCategoryClick(cat)}
               >
                 {cat}
               </button>
@@ -185,6 +205,7 @@ export default function ProductListingPage() {
               placeholder="Từ"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyPriceFilter()}
               min={0}
             />
             <span className="price-dash">–</span>
@@ -194,13 +215,14 @@ export default function ProductListingPage() {
               placeholder="Đến"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && applyPriceFilter()}
               min={0}
             />
           </div>
         </div>
 
-        <button className="filter-apply-btn" onClick={applyFilters}>
-          Áp dụng
+        <button className="filter-apply-btn" onClick={applyPriceFilter}>
+          Áp dụng giá
         </button>
         {hasActiveFilter && (
           <button className="filter-clear-btn" onClick={clearFilters}>
