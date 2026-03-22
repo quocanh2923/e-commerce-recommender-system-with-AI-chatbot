@@ -7,8 +7,8 @@ import './CartPage.css'
 const SHIPPING = 30000
 
 export default function CartPage() {
-  const { cart, updateQuantity, removeItem, subtotal } = useCart()
-  const { token } = useAuth()
+  const { cart, updateQuantity, removeItem, subtotal, fetchCart } = useCart()
+  const { token, authFetch } = useAuth()
   const navigate = useNavigate()
   const [ordering, setOrdering] = useState(false)
   const [orderDone, setOrderDone] = useState(null)
@@ -19,12 +19,12 @@ export default function CartPage() {
   const handleCheckout = async () => {
     setOrdering(true)
     try {
-      const res = await fetch('http://127.0.0.1:8000/orders/', {
+      const res = await authFetch('http://127.0.0.1:8000/orders/', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail)
+      await fetchCart()   // đồng bộ giỏ hàng về trống
       setOrderDone(data)
     } catch (err) {
       alert('Đặt hàng thất bại: ' + err.message)
@@ -42,7 +42,8 @@ export default function CartPage() {
           <p>Mã đơn hàng: <strong>#{orderDone._id?.slice(-8).toUpperCase()}</strong></p>
           <p className="total-confirm">Tổng tiền: <strong>{orderDone.total?.toLocaleString('vi-VN')} ₫</strong></p>
           <div className="success-actions">
-            <button onClick={() => navigate('/')} className="btn-primary">Tiếp tục mua sắm</button>
+            <button onClick={() => navigate('/orders')} className="btn-primary">Xem đơn hàng</button>
+            <button onClick={() => navigate('/products')} className="btn-secondary">Tiếp tục mua sắm</button>
           </div>
         </div>
       </div>

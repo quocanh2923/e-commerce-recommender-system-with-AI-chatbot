@@ -51,6 +51,7 @@ export default function Navbar() {
                 🛒
                 {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
               </Link>
+              <Link to="/orders" className="navbar-btn outline">Đơn hàng</Link>
               <button onClick={handleLogout} className="navbar-btn outline">Đăng xuất</button>
             </>
           ) : (
