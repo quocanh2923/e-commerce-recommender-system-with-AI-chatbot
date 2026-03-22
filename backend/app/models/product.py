@@ -14,6 +14,8 @@ class Product(BaseModel):
     description: Optional[str] = Field(None, title="Mô tả sản phẩm")
     image_url: Optional[str] = Field(None, title="Link ảnh sản phẩm")
     category: str = Field(..., title="Danh mục (VD: Ao, Quan)")
+    rating: Optional[float] = Field(0.0, title="Điểm đánh giá (0-5)")
+    stock: Optional[int] = Field(0, title="Số lượng tồn kho")
 
     # Cấu hình Model (Thay cho class Config cũ)
     model_config = ConfigDict(

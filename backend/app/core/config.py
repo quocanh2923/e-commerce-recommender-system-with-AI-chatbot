@@ -10,16 +10,16 @@ class Database:
     def connect(self):
         mongo_url = os.getenv("MONGO_URL")
         if not mongo_url:
-            print("❌ Lỗi: Chưa cấu hình MONGO_URL trong file .env")
+            print("[ERROR] Chua cau hinh MONGO_URL trong file .env")
             return
             
         self.client = AsyncIOMotorClient(mongo_url)
-        print("✅ Đã kết nối tới MongoDB thành công!")
+        print("[OK] Da ket noi toi MongoDB thanh cong!")
 
     def close(self):
         if self.client:
             self.client.close()
-            print("🔒 Đã đóng kết nối MongoDB.")
+            print("[OK] Da dong ket noi MongoDB.")
 
     def get_db(self):
         db_name = os.getenv("DB_NAME", "test_db")

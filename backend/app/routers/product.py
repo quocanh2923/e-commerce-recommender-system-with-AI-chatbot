@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException, Body
-from typing import List
+from fastapi import APIRouter, HTTPException, Body, Query
+from typing import List, Optional
 from bson import ObjectId
 from bson.errors import InvalidId
 from app.models.product import Product
@@ -24,10 +24,49 @@ async def create_product(product: Product = Body(...)):
     created_product = await db.get_db()["products"].find_one({"_id": new_product.inserted_id})
     return created_product
 
-# 2. API Lấy danh sách tất cả sản phẩm
+# 2. API Lấy danh sách sản phẩm với filter/search/sort
 @router.get("/", response_description="Lấy danh sách sản phẩm", response_model=List[Product])
-async def list_products():
-    products = await db.get_db()["products"].find().to_list(1000)
+async def list_products(
+    search: Optional[str] = Query(None, description="Tìm theo tên sản phẩm"),
+    category: Optional[str] = Query(None, description="Lọc theo danh mục"),
+    min_price: Optional[float] = Query(None, ge=0, description="Giá tối thiểu"),
+    max_price: Optional[float] = Query(None, ge=0, description="Giá tối đa"),
+    sort_by: Optional[str] = Query("newest", description="newest | price_asc | price_desc | rating"),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+):
+    query: dict = {}
+
+    if search:
+        query["name"] = {"$regex": search, "$options": "i"}
+
+    if category:
+        query["category"] = {"$regex": f"^{category}$", "$options": "i"}
+
+    if min_price is not None or max_price is not None:
+        price_filter: dict = {}
+        if min_price is not None:
+            price_filter["$gte"] = min_price
+        if max_price is not None:
+            price_filter["$lte"] = max_price
+        query["price"] = price_filter
+
+    sort_map = {
+        "newest": [("_id", -1)],
+        "price_asc": [("price", 1)],
+        "price_desc": [("price", -1)],
+        "rating": [("rating", -1)],
+    }
+    sort_order = sort_map.get(sort_by, [("_id", -1)])
+
+    products = (
+        await db.get_db()["products"]
+        .find(query)
+        .sort(sort_order)
+        .skip(skip)
+        .limit(limit)
+        .to_list(limit)
+    )
     return products
 
 

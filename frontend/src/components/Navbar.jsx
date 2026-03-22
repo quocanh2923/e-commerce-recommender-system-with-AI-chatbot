@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
@@ -7,10 +8,21 @@ export default function Navbar() {
   const { user, logout } = useAuth()
   const { totalItems } = useCart()
   const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const handleLogout = () => {
     logout()
     navigate('/')
+  }
+
+  const handleSearch = (e) => {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (q) {
+      navigate(`/products?search=${encodeURIComponent(q)}`)
+    } else {
+      navigate('/products')
+    }
   }
 
   return (
@@ -18,10 +30,15 @@ export default function Navbar() {
       <div className="navbar-inner">
         <Link to="/" className="navbar-logo">ShopAI</Link>
 
-        <div className="navbar-search">
-          <input type="text" placeholder="Tìm kiếm sản phẩm..." />
-          <button>Tìm</button>
-        </div>
+        <form className="navbar-search" onSubmit={handleSearch}>
+          <input
+            type="text"
+            placeholder="Tìm kiếm sản phẩm..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button type="submit">Tìm</button>
+        </form>
 
         <div className="navbar-actions">
           {user ? (
