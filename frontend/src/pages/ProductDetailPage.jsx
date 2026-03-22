@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useCart } from '../context/CartContext'
 import './ProductDetailPage.css'
 
 export default function ProductDetailPage() {
   const { id } = useParams()
   const { user, token } = useAuth()
+  const { addToCart } = useCart()
   const navigate = useNavigate()
 
   const [product, setProduct] = useState(null)
@@ -13,7 +15,6 @@ export default function ProductDetailPage() {
   const [error, setError] = useState(null)
   const [addedToCart, setAddedToCart] = useState(false)
 
-  // Lấy chi tiết sản phẩm
   useEffect(() => {
     setLoading(true)
     fetch(`http://127.0.0.1:8000/products/${id}`)
@@ -25,26 +26,22 @@ export default function ProductDetailPage() {
       .catch(err => { setError(err.message); setLoading(false) })
   }, [id])
 
-  // Ghi interaction "view" khi user đã đăng nhập và trang load xong
+  // Ghi interaction "view"
   useEffect(() => {
     if (!product || !user || !token) return
     fetch(`http://127.0.0.1:8000/interactions/?product_id=${product._id}&action_type=view`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {}) // bỏ qua lỗi ngầm — không ảnh hưởng UX
+    }).catch(() => {})
   }, [product, user, token])
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!user) { navigate('/login'); return }
-
-    // Ghi interaction "add_to_cart"
-    fetch(`http://127.0.0.1:8000/interactions/?product_id=${product._id}&action_type=add_to_cart`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-    }).catch(() => {})
-
-    setAddedToCart(true)
-    setTimeout(() => setAddedToCart(false), 2000)
+    const ok = await addToCart(product)
+    if (ok) {
+      setAddedToCart(true)
+      setTimeout(() => setAddedToCart(false), 2000)
+    }
   }
 
   if (loading) return <div className="detail-loading">Đang tải...</div>

@@ -2,12 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.core.config import db
-# 👇 1. Import router sản phẩm
 from app.routers import product
-# 👇 Import router người dùng
 from app.routers import user
-# 👇 Import router hành vi
-from app.routers import interaction 
+from app.routers import interaction
+from app.routers import cart
+from app.routers import order
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,10 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 👇 2. Gắn router vào ứng dụng
+# 👇 Gắn router vào ứng dụng
 app.include_router(product.router, prefix="/products", tags=["products"])
 app.include_router(user.router, prefix="/users", tags=["users"])
 app.include_router(interaction.router, prefix="/interactions", tags=["interactions"])
+app.include_router(cart.router, prefix="/cart", tags=["cart"])
+app.include_router(order.router, prefix="/orders", tags=["orders"])
 
 @app.get("/")
 async def root():
