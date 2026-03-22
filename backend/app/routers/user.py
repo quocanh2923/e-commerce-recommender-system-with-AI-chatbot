@@ -44,6 +44,12 @@ async def login_user(login_data: UserLogin = Body(...)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    if user.get("is_blocked"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+        )
+
     access_token = create_access_token(data={"sub": str(user["_id"])})
 
     user["_id"] = str(user["_id"])

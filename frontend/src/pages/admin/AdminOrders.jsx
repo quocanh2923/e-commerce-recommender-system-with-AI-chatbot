@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { useSearchParams } from 'react-router-dom'
 
 const STATUS_OPTIONS = [
   { value: 'pending',    label: 'Chờ xác nhận', color: '#f59e0b' },
@@ -12,11 +13,14 @@ const STATUS_MAP = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s]))
 
 export default function AdminOrders() {
   const { authFetch } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [data, setData]           = useState({ orders: [], total: 0 })
   const [loading, setLoading]     = useState(true)
   const [statusFilter, setFilter] = useState('')
   const [page, setPage]           = useState(1)
   const [updating, setUpdating]   = useState(null)
+  const [detail, setDetail]       = useState(null)
+  const [detailReviews, setDetailReviews] = useState({})
 
   const fetchOrders = useCallback(async () => {
     setLoading(true)
@@ -27,6 +31,27 @@ export default function AdminOrders() {
   }, [page, statusFilter])
 
   useEffect(() => { fetchOrders() }, [fetchOrders])
+
+  // Open detail from notification ?review=orderId
+  useEffect(() => {
+    const reviewOrderId = searchParams.get('review')
+    if (reviewOrderId && data.orders.length > 0) {
+      const order = data.orders.find(o => o._id === reviewOrderId)
+      if (order) {
+        openDetail(order)
+        setSearchParams({}, { replace: true })
+      }
+    }
+  }, [data.orders, searchParams])
+
+  const openDetail = async (order) => {
+    setDetail(order)
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/admin/orders/${order._id}/reviews`)
+      if (res.ok) setDetailReviews(await res.json())
+      else setDetailReviews({})
+    } catch { setDetailReviews({}) }
+  }
 
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdating(orderId)
@@ -85,7 +110,7 @@ export default function AdminOrders() {
               {data.orders.map(order => {
                 const s = STATUS_MAP[order.status] || STATUS_MAP.pending
                 return (
-                  <tr key={order._id}>
+                  <tr key={order._id} className="clickable" onClick={() => openDetail(order)}>
                     <td><code>#{order._id.slice(-8).toUpperCase()}</code></td>
                     <td>{new Date(order.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                     <td className="order-items-cell">
@@ -100,7 +125,7 @@ export default function AdminOrders() {
                         {s.label}
                       </span>
                     </td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <select
                         className="admin-select sm"
                         value={order.status}
@@ -128,6 +153,84 @@ export default function AdminOrders() {
           <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
         </div>
       )}
+
+      {/* Order Detail Modal */}
+      {detail && (() => {
+        const s = STATUS_MAP[detail.status] || STATUS_MAP.pending
+        const closeModal = () => { setDetail(null); setDetailReviews({}) }
+        return (
+          <div className="admin-modal-overlay" onClick={closeModal}>
+            <div className="admin-modal" onClick={e => e.stopPropagation()}>
+              <h2>Chi tiết đơn hàng #{detail._id.slice(-8).toUpperCase()}</h2>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                  {new Date(detail.created_at).toLocaleDateString('vi-VN', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+                <span className="status-badge" style={{ background: s.color + '20', color: s.color }}>
+                  {s.label}
+                </span>
+              </div>
+
+              {(detail.username || detail.user_id) && (
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 12 }}>
+                  Khách hàng: <strong>{detail.username || detail.user_id}</strong>
+                </p>
+              )}
+
+              {/* Products table with reviews */}
+              <div className="admin-order-items">
+                {detail.items?.map((item, i) => {
+                  const review = detailReviews[item.product_id]
+                  return (
+                    <div key={i} className="admin-order-item-block">
+                      <div className="admin-order-item-row">
+                        <span className="admin-order-item-name">{item.name}</span>
+                        <span className="admin-order-item-qty">×{item.quantity}</span>
+                        <span className="admin-order-item-price">{(item.price * item.quantity).toLocaleString('vi-VN')} ₫</span>
+                      </div>
+                      {review && (
+                        <div className="admin-review-block">
+                          <div className="admin-review-stars">
+                            {'★'.repeat(Math.round(review.rating))}{'☆'.repeat(5 - Math.round(review.rating))}
+                            <span className="admin-review-score">{review.rating}/5</span>
+                            {review.username && <span className="admin-review-user">— {review.username}</span>}
+                          </div>
+                          {review.feedback && (
+                            <div className="admin-review-feedback">"{review.feedback}"</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.9rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>Tạm tính</span>
+                  <span>{detail.subtotal?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
+                  <span>Phí vận chuyển</span>
+                  <span>{detail.shipping?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.05rem', borderTop: '2px solid #e2e8f0', paddingTop: 8, marginTop: 4 }}>
+                  <span>Tổng cộng</span>
+                  <span style={{ color: '#e74c3c' }}>{detail.total?.toLocaleString('vi-VN')} ₫</span>
+                </div>
+              </div>
+
+              <div className="modal-actions" style={{ marginTop: 20 }}>
+                <button className="admin-btn outline" onClick={closeModal}>Đóng</button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

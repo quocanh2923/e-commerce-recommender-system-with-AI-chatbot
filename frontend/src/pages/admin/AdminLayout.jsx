@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import NotificationBell from '../../components/NotificationBell'
 import './Admin.css'
 
 const NAV_ITEMS = [
@@ -42,6 +43,13 @@ export default function AdminLayout() {
       </aside>
 
       <main className="admin-main">
+        <div className="admin-topbar">
+          <div className="admin-topbar-left" />
+          <div className="admin-topbar-right">
+            <NotificationBell isAdmin />
+            <span className="admin-topbar-user">👤 {user?.username}</span>
+          </div>
+        </div>
         <Outlet />
       </main>
     </div>

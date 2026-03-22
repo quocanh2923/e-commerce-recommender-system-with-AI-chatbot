@@ -5,6 +5,7 @@ from bson import ObjectId
 from app.models.order import Order, OrderItem
 from app.core.config import db
 from app.core.dependencies import get_current_user
+from app.routers.notification import create_notification
 
 router = APIRouter()
 
@@ -49,6 +50,29 @@ async def create_order(current_user: dict = Depends(get_current_user)):
 
     created = await db.get_db()["orders"].find_one({"_id": result.inserted_id})
     created["_id"] = str(created["_id"])
+
+    # Thong bao cho tat ca admin
+    admins = await db.get_db()["users"].find({"role": "admin"}).to_list(None)
+    order_code = created["_id"][-8:].upper()
+    for adm in admins:
+        await create_notification(
+            user_id=str(adm["_id"]),
+            title="Don hang moi",
+            message=f"Don hang #{order_code} vua duoc dat - {total:,.0f}d",
+            ntype="order",
+            link=f"/admin/orders",
+            target="admin",
+        )
+
+    # Thong bao cho user
+    await create_notification(
+        user_id=user_id,
+        title="Dat hang thanh cong",
+        message=f"Don hang #{order_code} da duoc tiep nhan. Chung toi se xu ly som nhat!",
+        ntype="order",
+        link=f"/orders/{created['_id']}",
+    )
+
     return created
 
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import NotificationBell from './NotificationBell'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -51,6 +52,7 @@ export default function Navbar() {
                 🛒
                 {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
               </Link>
+              <NotificationBell />
               <Link to="/orders" className="navbar-btn outline">Đơn hàng</Link>
               <button onClick={handleLogout} className="navbar-btn outline">Đăng xuất</button>
             </>

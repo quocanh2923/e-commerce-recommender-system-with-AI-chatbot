@@ -18,6 +18,25 @@ export function AuthProvider({ children }) {
     setLoading(false)
   }, [])
 
+  // Đồng bộ auth giữa các tab — khi tab khác login/logout, tab này cập nhật theo
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'token' || e.key === 'user') {
+        const newToken = localStorage.getItem('token')
+        const newUser = localStorage.getItem('user')
+        if (newToken && newUser) {
+          setToken(newToken)
+          setUser(JSON.parse(newUser))
+        } else {
+          setToken(null)
+          setUser(null)
+        }
+      }
+    }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
   const login = (tokenValue, userData) => {
     localStorage.setItem('token', tokenValue)
     localStorage.setItem('user', JSON.stringify(userData))

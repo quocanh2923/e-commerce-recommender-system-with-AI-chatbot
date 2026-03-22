@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import os
 from app.core.config import db
 from app.routers import product
 from app.routers import user
@@ -10,6 +12,7 @@ from app.routers import order
 from app.routers import recommend
 from app.routers import chat
 from app.routers import admin
+from app.routers import notification
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +42,12 @@ app.include_router(order.router, prefix="/orders", tags=["orders"])
 app.include_router(recommend.router, prefix="/recommend", tags=["recommend"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
+app.include_router(notification.router, prefix="/notifications", tags=["notifications"])
+
+# Serve uploaded images
+_upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(_upload_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_upload_dir), name="uploads")
 
 @app.get("/")
 async def root():

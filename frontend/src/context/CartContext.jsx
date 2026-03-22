@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './AuthContext'
 
 const CartContext = createContext(null)
@@ -7,6 +7,14 @@ export function CartProvider({ children }) {
   const { user, token, authFetch } = useAuth()
   const [cart, setCart] = useState({ items: [] })
   const [loading, setLoading] = useState(false)
+  const [cartToast, setCartToast] = useState(null)
+  const toastTimer = useRef(null)
+
+  const showCartToast = (message) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    setCartToast(message)
+    toastTimer.current = setTimeout(() => setCartToast(null), 2500)
+  }
 
   const fetchCart = useCallback(async () => {
     if (!token) { setCart({ items: [] }); return }
@@ -35,7 +43,11 @@ export function CartProvider({ children }) {
         image_url: product.image_url || null,
       }),
     })
-    if (res.ok) { setCart(await res.json()); return true }
+    if (res.ok) {
+      setCart(await res.json())
+      showCartToast('Đã thêm vào giỏ hàng')
+      return true
+    }
     return false
   }
 
@@ -60,6 +72,11 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider value={{ cart, loading, addToCart, updateQuantity, removeItem, fetchCart, totalItems, subtotal }}>
       {children}
+      {cartToast && (
+        <div className="cart-toast-popup">
+          <span className="cart-toast-icon">✓</span> {cartToast}
+        </div>
+      )}
     </CartContext.Provider>
   )
 }

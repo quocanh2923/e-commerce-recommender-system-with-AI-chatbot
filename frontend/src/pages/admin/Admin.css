@@ -8,7 +8,7 @@
 /* ── Sidebar ─────────────────────────────────── */
 .admin-sidebar {
   width: 240px;
-  min-height: 100vh;
+  height: 100vh;
   background: #1e293b;
   color: #e2e8f0;
   display: flex;
@@ -16,6 +16,7 @@
   position: sticky;
   top: 0;
   flex-shrink: 0;
+  overflow-y: auto;
 }
 
 .admin-sidebar-logo {
@@ -76,6 +77,30 @@
   flex: 1;
   overflow: auto;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top bar ── */
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+.admin-topbar-left { flex: 1; }
+.admin-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.admin-topbar-user {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .admin-page {
@@ -226,6 +251,35 @@
 .role-badge.admin { background: #fef3c7; color: #d97706; }
 .role-badge.user  { background: #f0fdf4; color: #16a34a; }
 
+/* status badge small */
+.status-badge-sm {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-badge-sm.active  { background: #f0fdf4; color: #16a34a; }
+.status-badge-sm.blocked { background: #fef2f2; color: #dc2626; }
+
+/* blocked row */
+.row-blocked { opacity: 0.6; background: #fefefe; }
+
+/* button variants */
+.admin-btn.sm {
+  padding: 4px 14px;
+  font-size: 0.78rem;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+.admin-btn.danger  { background: #fee2e2; color: #dc2626; }
+.admin-btn.danger:hover { background: #fecaca; }
+.admin-btn.success { background: #dcfce7; color: #16a34a; }
+.admin-btn.success:hover { background: #bbf7d0; }
+.admin-btn.sm:disabled { opacity: 0.5; cursor: not-allowed; }
+
 .order-items-cell { max-width: 220px; }
 .order-item-tag {
   display: inline-block;
@@ -372,6 +426,74 @@
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* ── Admin order items + reviews in modal ── */
+.admin-order-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 16px;
+}
+.admin-order-item-block {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 10px 0;
+}
+.admin-order-item-block:last-child { border-bottom: none; }
+.admin-order-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-order-item-name {
+  flex: 1;
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 0.9rem;
+}
+.admin-order-item-qty {
+  color: #64748b;
+  font-size: 0.85rem;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.admin-order-item-price {
+  font-weight: 600;
+  color: #7c3aed;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+.admin-review-block {
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: #fefce8;
+  border-radius: 8px;
+  border-left: 3px solid #f59e0b;
+}
+.admin-review-stars {
+  color: #f59e0b;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.admin-review-score {
+  font-size: 0.8rem;
+  color: #92400e;
+  font-weight: 600;
+}
+.admin-review-user {
+  font-size: 0.78rem;
+  color: #78716c;
+  font-style: italic;
+}
+.admin-review-feedback {
+  margin-top: 4px;
+  font-size: 0.84rem;
+  color: #57534e;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* ── Responsive ──────────────────────────────── */

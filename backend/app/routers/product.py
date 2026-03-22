@@ -1,9 +1,13 @@
-from fastapi import APIRouter, HTTPException, Body, Query
+from fastapi import APIRouter, HTTPException, Body, Query, Depends
 from typing import List, Optional
+from datetime import datetime, timezone
 from bson import ObjectId
 from bson.errors import InvalidId
+from pydantic import BaseModel, Field
 from app.models.product import Product
 from app.core.config import db
+from app.core.dependencies import get_current_user, get_current_admin
+from app.routers.notification import create_notification
 
 router = APIRouter()
 
@@ -118,3 +122,111 @@ async def delete_product(id: str):
         return {"message": "Xóa sản phẩm thành công"}
     else:
         raise HTTPException(status_code=404, detail="Không tìm thấy sản phẩm để xóa")
+
+
+# 6. API Đánh giá sản phẩm (chỉ người dùng đã mua & đơn delivered)
+class RatingBody(BaseModel):
+    rating: float = Field(..., ge=1, le=5)
+    order_id: str
+    feedback: Optional[str] = None
+
+
+@router.post("/{id}/rate")
+async def rate_product(id: str, body: RatingBody, current_user: dict = Depends(get_current_user)):
+    try:
+        product_oid = ObjectId(id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID san pham khong hop le")
+
+    try:
+        order_oid = ObjectId(body.order_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail="ID don hang khong hop le")
+
+    db_ = db.get_db()
+
+    # Kiểm tra đơn hàng thuộc user và đã giao
+    order = await db_["orders"].find_one({
+        "_id": order_oid,
+        "user_id": current_user["_id"],
+        "status": "delivered",
+    })
+    if not order:
+        raise HTTPException(status_code=403, detail="Ban chi co the danh gia khi don hang da giao")
+
+    # Kiểm tra sản phẩm có trong đơn hàng
+    product_in_order = any(item["product_id"] == id for item in order.get("items", []))
+    if not product_in_order:
+        raise HTTPException(status_code=400, detail="San pham khong co trong don hang nay")
+
+    # Kiểm tra đã đánh giá chưa
+    existing = await db_["reviews"].find_one({
+        "user_id": current_user["_id"],
+        "product_id": id,
+        "order_id": body.order_id,
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ban da danh gia san pham nay trong don hang nay roi")
+
+    # Lưu review
+    review_doc = {
+        "user_id": current_user["_id"],
+        "product_id": id,
+        "order_id": body.order_id,
+        "rating": body.rating,
+        "feedback": (body.feedback or "").strip() if body.feedback else "",
+        "username": current_user.get("username", ""),
+        "created_at": datetime.now(timezone.utc),
+    }
+    await db_["reviews"].insert_one(review_doc)
+
+    # Tính lại rating trung bình cho sản phẩm
+    pipeline = [
+        {"$match": {"product_id": id}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}}
+    ]
+    result = await db_["reviews"].aggregate(pipeline).to_list(1)
+    new_avg = round(result[0]["avg"], 1) if result else body.rating
+    await db_["products"].update_one({"_id": product_oid}, {"$set": {"rating": new_avg}})
+
+    return {"message": "Danh gia thanh cong", "new_rating": new_avg}
+
+
+# 7b. Gửi 1 thông báo gộp cho admin sau khi user đánh giá batch
+class ReviewNotifyBody(BaseModel):
+    order_id: str
+    count: int = Field(..., ge=1)
+
+@router.post("/reviews/notify")
+async def notify_admin_reviews(body: ReviewNotifyBody, current_user: dict = Depends(get_current_user)):
+    db_ = db.get_db()
+    username = current_user.get("username", "Nguoi dung")
+    order_code = body.order_id[-8:].upper()
+    admins = await db_["users"].find({"role": "admin"}).to_list(100)
+    for adm in admins:
+        await create_notification(
+            user_id=str(adm["_id"]),
+            title="Danh gia moi",
+            message=f"{username} da danh gia {body.count} san pham trong don #{order_code}",
+            ntype="review",
+            link=f"/admin/orders?review={body.order_id}",
+            target="admin",
+        )
+    return {"ok": True}
+
+
+# 7. Lấy danh sách đánh giá của user cho 1 đơn hàng
+@router.get("/reviews/{order_id}")
+async def get_reviews_for_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    reviews = await db.get_db()["reviews"].find({
+        "user_id": current_user["_id"],
+        "order_id": order_id,
+    }).to_list(100)
+    # Trả về dict { product_id: { rating, feedback } }
+    return {
+        r["product_id"]: {
+            "rating": r["rating"],
+            "feedback": r.get("feedback", ""),
+        }
+        for r in reviews
+    }

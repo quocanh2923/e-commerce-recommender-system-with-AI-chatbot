@@ -1,12 +1,35 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query, Body
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Body, UploadFile, File
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime, timezone
+import os, uuid, shutil
 from app.core.config import db
 from app.core.dependencies import get_current_admin
 from app.models.product import Product
+from app.routers.notification import create_notification
 
 router = APIRouter()
+
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+ALLOWED_EXT = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+
+
+@router.post("/upload-image")
+async def upload_image(file: UploadFile = File(...), admin=Depends(get_current_admin)):
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail=f"Chi chap nhan anh: {', '.join(ALLOWED_EXT)}")
+    if file.size and file.size > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File anh khong duoc qua 5MB")
+
+    filename = f"{uuid.uuid4().hex}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    with open(filepath, "wb") as f:
+        shutil.copyfileobj(file.file, f)
+
+    return {"image_url": f"http://127.0.0.1:8000/uploads/{filename}"}
 
 
 # ── 1. Dashboard Stats ───────────────────────────────────────────────────────
@@ -122,8 +145,17 @@ async def admin_list_orders(
     skip = (page - 1) * limit
     total = await db_["orders"].count_documents(query)
     orders = await db_["orders"].find(query).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    # Lấy tên người dùng cho mỗi đơn hàng
+    user_ids = list({o["user_id"] for o in orders if o.get("user_id")})
+    users = await db_["users"].find(
+        {"_id": {"$in": [ObjectId(uid) for uid in user_ids]}}
+    ).to_list(len(user_ids))
+    user_map = {str(u["_id"]): u.get("username", "") for u in users}
+
     for o in orders:
         o["_id"] = str(o["_id"])
+        o["username"] = user_map.get(o.get("user_id", ""), "")
 
     return {"total": total, "page": page, "limit": limit, "orders": orders}
 
@@ -151,22 +183,90 @@ async def admin_update_order_status(
 
     updated = await db_["orders"].find_one({"_id": oid})
     updated["_id"] = str(updated["_id"])
+
+    # Thong bao cho user khi admin cap nhat trang thai
+    status_text = {
+        "pending": "Cho xac nhan",
+        "processing": "Dang xu ly",
+        "shipped": "Dang giao hang",
+        "delivered": "Da giao thanh cong",
+        "cancelled": "Da bi huy",
+    }
+    order_code = updated["_id"][-8:].upper()
+    await create_notification(
+        user_id=updated["user_id"],
+        title="Cap nhat don hang",
+        message=f"Don hang #{order_code}: {status_text.get(new_status, new_status)}",
+        ntype="order",
+        link=f"/orders/{updated['_id']}",
+        target="user",
+    )
+
     return updated
 
 
-# ── 4. Users list ────────────────────────────────────────────────────────────
+# ── 4. Admin: Lấy đánh giá cho 1 đơn hàng ───────────────────────────────────
+@router.get("/orders/{order_id}/reviews")
+async def get_order_reviews(order_id: str, admin=Depends(get_current_admin)):
+    reviews = await db.get_db()["reviews"].find({
+        "order_id": order_id,
+    }).to_list(100)
+    return {
+        r["product_id"]: {
+            "rating": r["rating"],
+            "feedback": r.get("feedback", ""),
+            "username": r.get("username", ""),
+        }
+        for r in reviews
+    }
+
+
+# ── 5. Users list ────────────────────────────────────────────────────────────
 @router.get("/users")
 async def admin_list_users(
+    search: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     admin=Depends(get_current_admin),
 ):
     db_ = db.get_db()
+    query = {}
+    if search:
+        query["$or"] = [
+            {"username": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}},
+            {"full_name": {"$regex": search, "$options": "i"}},
+        ]
     skip = (page - 1) * limit
-    total = await db_["users"].count_documents({})
-    users = await db_["users"].find().skip(skip).limit(limit).to_list(limit)
+    total = await db_["users"].count_documents(query)
+    users = await db_["users"].find(query).skip(skip).limit(limit).to_list(limit)
     for u in users:
         u["_id"] = str(u["_id"])
         u.pop("password", None)
 
     return {"total": total, "page": page, "limit": limit, "users": users}
+
+
+# ── 6. Block / Unblock user ──────────────────────────────────────────────────
+@router.put("/users/{user_id}/block")
+async def admin_toggle_block_user(
+    user_id: str,
+    body: dict = Body(...),
+    admin=Depends(get_current_admin),
+):
+    db_ = db.get_db()
+    is_blocked = body.get("is_blocked", True)
+    try:
+        oid = ObjectId(user_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID khong hop le")
+
+    # Không cho phép khóa chính mình
+    if str(admin["_id"]) == user_id:
+        raise HTTPException(status_code=400, detail="Khong the khoa chinh minh")
+
+    result = await db_["users"].update_one({"_id": oid}, {"$set": {"is_blocked": is_blocked}})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Khong tim thay user")
+
+    return {"ok": True, "is_blocked": is_blocked}

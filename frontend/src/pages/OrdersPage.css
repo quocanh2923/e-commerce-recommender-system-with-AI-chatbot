@@ -311,3 +311,151 @@
   .order-timeline { padding: 1.5rem 0.5rem; }
   .timeline-label { font-size: 0.68rem; }
 }
+
+/* ── Star Rating ── */
+.order-item-row {
+  flex-wrap: wrap;
+}
+
+.order-item-rating {
+  width: 100%;
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: center;
+}
+
+.star-rating {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.star-rating .star {
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: color 0.15s;
+  user-select: none;
+}
+.star-rating .star.filled { color: #f59e0b; }
+.star-rating .star.disabled { cursor: default; }
+
+.rating-done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.rating-done-text {
+  font-size: 0.78rem;
+  color: #10b981;
+  font-weight: 600;
+}
+
+.rating-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-submit-btn {
+  padding: 3px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rating-submit-btn:hover { background: #2563eb; }
+.rating-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.rating-stars-text {
+  font-size: 0.78rem;
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+/* ── Batch submit ── */
+.rating-batch-submit {
+  padding: 1rem 0 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.rating-batch-btn {
+  padding: 10px 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rating-batch-btn:hover { background: #059669; }
+.rating-batch-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* ── Toast notification ── */
+.toast-notification {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 9999;
+  animation: toastSlideUp 0.3s ease-out;
+  white-space: nowrap;
+}
+.toast-notification.success {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.toast-notification.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+@keyframes toastSlideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Feedback input & display ── */
+.rating-pending-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.rating-feedback-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 44px;
+  max-height: 120px;
+  transition: border-color 0.2s;
+}
+.rating-feedback-input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.1);
+}
+.rating-feedback-display {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  color: #6b7280;
+  font-style: italic;
+  line-height: 1.4;
+}
