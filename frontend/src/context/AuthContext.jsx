@@ -32,8 +32,21 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Wrapper cho fetch – tự động logout nếu nhận 401 (token hết hạn)
+  const authFetch = async (url, options = {}) => {
+    const headers = { ...(options.headers || {}) }
+    const currentToken = localStorage.getItem('token')
+    if (currentToken) headers['Authorization'] = `Bearer ${currentToken}`
+    const res = await fetch(url, { ...options, headers })
+    if (res.status === 401) {
+      logout()
+      return res
+    }
+    return res
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, loading, authFetch }}>
       {children}
     </AuthContext.Provider>
   )

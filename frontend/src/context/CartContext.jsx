@@ -4,7 +4,7 @@ import { useAuth } from './AuthContext'
 const CartContext = createContext(null)
 
 export function CartProvider({ children }) {
-  const { user, token } = useAuth()
+  const { user, token, authFetch } = useAuth()
   const [cart, setCart] = useState({ items: [] })
   const [loading, setLoading] = useState(false)
 
@@ -12,23 +12,21 @@ export function CartProvider({ children }) {
     if (!token) { setCart({ items: [] }); return }
     setLoading(true)
     try {
-      const res = await fetch('http://127.0.0.1:8000/cart/', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const res = await authFetch('http://127.0.0.1:8000/cart/')
       if (res.ok) setCart(await res.json())
     } finally {
       setLoading(false)
     }
-  }, [token])
+  }, [token, authFetch])
 
   // Load giỏ khi user đăng nhập / đăng xuất
   useEffect(() => { fetchCart() }, [fetchCart])
 
   const addToCart = async (product) => {
     if (!token) return false
-    const res = await fetch('http://127.0.0.1:8000/cart/items', {
+    const res = await authFetch('http://127.0.0.1:8000/cart/items', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         product_id: product._id,
         name: product.name,
@@ -42,17 +40,16 @@ export function CartProvider({ children }) {
   }
 
   const updateQuantity = async (productId, quantity) => {
-    const res = await fetch(
+    const res = await authFetch(
       `http://127.0.0.1:8000/cart/items/${productId}?quantity=${quantity}`,
-      { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }
+      { method: 'PUT' }
     )
     if (res.ok) setCart(await res.json())
   }
 
   const removeItem = async (productId) => {
-    const res = await fetch(`http://127.0.0.1:8000/cart/items/${productId}`, {
+    const res = await authFetch(`http://127.0.0.1:8000/cart/items/${productId}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
     })
     if (res.ok) setCart(await res.json())
   }
