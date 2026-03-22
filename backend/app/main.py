@@ -9,6 +9,7 @@ from app.routers import cart
 from app.routers import order
 from app.routers import recommend
 from app.routers import chat
+from app.routers import admin
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -37,6 +38,7 @@ app.include_router(cart.router, prefix="/cart", tags=["cart"])
 app.include_router(order.router, prefix="/orders", tags=["orders"])
 app.include_router(recommend.router, prefix="/recommend", tags=["recommend"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
+app.include_router(admin.router, prefix="/admin", tags=["admin"])
 
 @app.get("/")
 async def root():
