@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import RecommendSection from '../components/RecommendSection'
 import './ProductDetailPage.css'
 
 export default function ProductDetailPage() {
@@ -91,6 +92,14 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      {/* ── Sản phẩm tương tự ── */}
+      <RecommendSection
+        type="similar"
+        productId={id}
+        title="Sản phẩm tương tự"
+        limit={8}
+      />
     </div>
   )
 }
