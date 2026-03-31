@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query, Body, UploadFile, File
 from typing import List, Optional
 from bson import ObjectId
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import os, uuid, shutil
 from app.core.config import db
 from app.core.dependencies import get_current_admin
@@ -40,7 +40,10 @@ async def get_stats(admin=Depends(get_current_admin)):
     total_users    = await db_["users"].count_documents({})
     total_orders   = await db_["orders"].count_documents({})
 
-    revenue_pipeline = [{"$group": {"_id": None, "total": {"$sum": "$total"}}}]
+    revenue_pipeline = [
+        {"$match": {"status": "delivered"}},
+        {"$group": {"_id": None, "total": {"$sum": "$total"}}}
+    ]
     rev_result = await db_["orders"].aggregate(revenue_pipeline).to_list(1)
     total_revenue = rev_result[0]["total"] if rev_result else 0
 
@@ -59,6 +62,62 @@ async def get_stats(admin=Depends(get_current_admin)):
         "total_revenue": total_revenue,
         "recent_orders": recent_orders,
         "orders_by_status": orders_by_status,
+    }
+
+
+# ── 1b. Chart Data ────────────────────────────────────────────────────────────
+@router.get("/chart-data")
+async def get_chart_data(admin=Depends(get_current_admin)):
+    db_ = db.get_db()
+
+    # Doanh thu 7 ngày gần đây (chỉ đơn delivered)
+    # Dùng naive UTC để khớp với cách Motor lưu datetime trong MongoDB
+    today = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    revenue_by_day = []
+    for i in range(6, -1, -1):
+        day_start = today - timedelta(days=i)
+        day_end   = day_start + timedelta(days=1)
+        pipe = [
+            {"$match": {"status": "delivered", "created_at": {"$gte": day_start, "$lt": day_end}}},
+            {"$group": {"_id": None, "total": {"$sum": "$total"}, "count": {"$sum": 1}}},
+        ]
+        result = await db_["orders"].aggregate(pipe).to_list(1)
+        revenue_by_day.append({
+            "date": day_start.strftime("%d/%m"),
+            "revenue": result[0]["total"] if result else 0,
+            "orders": result[0]["count"] if result else 0,
+        })
+
+    # Top 5 danh mục bán chạy (theo số lượng sản phẩm bán trong đơn delivered)
+    category_pipeline = [
+        {"$match": {"status": "delivered"}},
+        {"$unwind": "$items"},
+        {"$lookup": {
+            "from": "products",
+            "let": {"pid": "$items.product_id"},
+            "pipeline": [
+                {"$match": {"$expr": {"$eq": [{"$toString": "$_id"}, "$$pid"]}}}
+            ],
+            "as": "product"
+        }},
+        {"$unwind": {"path": "$product", "preserveNullAndEmptyArrays": True}},
+        {"$group": {
+            "_id": "$product.category",
+            "quantity": {"$sum": "$items.quantity"},
+            "revenue": {"$sum": {"$multiply": ["$items.price", "$items.quantity"]}},
+        }},
+        {"$sort": {"quantity": -1}},
+        {"$limit": 5},
+    ]
+    cat_result = await db_["orders"].aggregate(category_pipeline).to_list(None)
+    top_categories = [
+        {"category": r["_id"] or "Khác", "quantity": r["quantity"], "revenue": r["revenue"]}
+        for r in cat_result
+    ]
+
+    return {
+        "revenue_by_day": revenue_by_day,
+        "top_categories": top_categories,
     }
 
 

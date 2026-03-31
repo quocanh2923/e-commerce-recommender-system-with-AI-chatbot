@@ -339,6 +339,16 @@
   background: #4338ca;
 }
 
+.out-of-stock-badge {
+  padding: 5px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #9ca3af;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
 /* ============================
    States
    ============================ */

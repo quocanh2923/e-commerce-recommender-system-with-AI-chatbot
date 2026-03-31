@@ -79,11 +79,16 @@ export default function ProductDetailPage() {
           )}
 
           <button
-            className={`add-to-cart-btn ${addedToCart ? 'added' : ''}`}
+            className={`add-to-cart-btn ${addedToCart ? 'added' : ''} ${product.stock === 0 ? 'out-of-stock' : ''}`}
             onClick={handleAddToCart}
+            disabled={product.stock === 0}
           >
-            {addedToCart ? '✓ Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng'}
+            {product.stock === 0 ? 'Hết hàng' : addedToCart ? '✓ Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng'}
           </button>
+
+          {product.stock > 0 && product.stock <= 5 && (
+            <p className="stock-warning">⚠️ Chỉ còn {product.stock} sản phẩm!</p>
+          )}
 
           {!user && (
             <p className="login-hint">

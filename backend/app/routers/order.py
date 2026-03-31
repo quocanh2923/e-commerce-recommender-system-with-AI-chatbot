@@ -20,6 +20,26 @@ async def create_order(order_data: OrderCreate = Body(...), current_user: dict =
         raise HTTPException(status_code=400, detail="Giỏ hàng trống")
 
     items = cart["items"]
+
+    # Kiểm tra và giữ stock (atomic)
+    for item in items:
+        product = await db.get_db()["products"].find_one({"_id": ObjectId(item["product_id"])})
+        if not product:
+            raise HTTPException(status_code=404, detail=f"Sản phẩm '{item['name']}' không tồn tại")
+        if product.get("stock", 0) < item["quantity"]:
+            avail = product.get("stock", 0)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sản phẩm '{item['name']}' chỉ còn {avail} sản phẩm"
+            )
+
+    # Trừ stock
+    for item in items:
+        await db.get_db()["products"].update_one(
+            {"_id": ObjectId(item["product_id"])},
+            {"$inc": {"stock": -item["quantity"]}}
+        )
+
     subtotal = sum(i["price"] * i["quantity"] for i in items)
     shipping = 30000
     total = subtotal + shipping
@@ -128,6 +148,13 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
         {"_id": oid},
         {"$set": {"status": "cancelled"}}
     )
+
+    # Hoàn lại stock
+    for item in order.get("items", []):
+        await db.get_db()["products"].update_one(
+            {"_id": ObjectId(item["product_id"])},
+            {"$inc": {"stock": item["quantity"]}}
+        )
 
     # Thông báo cho admin
     order_code = order_id[-8:].upper()

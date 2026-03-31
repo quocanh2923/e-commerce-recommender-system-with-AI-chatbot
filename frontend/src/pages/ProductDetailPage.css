@@ -118,6 +118,21 @@
   background: #16a34a;
 }
 
+.add-to-cart-btn.out-of-stock,
+.add-to-cart-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.stock-warning {
+  font-size: 0.85rem;
+  color: #f59e0b;
+  font-weight: 600;
+  margin-top: 6px;
+  text-align: center;
+}
+
 .login-hint {
   font-size: 0.85rem;
   color: #888;

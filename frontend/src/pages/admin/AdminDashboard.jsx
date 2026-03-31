@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from 'recharts'
 
 const STATUS_LABEL = {
   pending:    { text: 'Chờ xác nhận', color: '#f59e0b' },
@@ -10,28 +14,47 @@ const STATUS_LABEL = {
   cancelled:  { text: 'Đã huỷ',       color: '#ef4444' },
 }
 
+const formatVND = (v) => {
+  if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'tr'
+  if (v >= 1_000) return (v / 1_000).toFixed(0) + 'k'
+  return v
+}
+
 export default function AdminDashboard() {
   const { authFetch } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState(null)
+  const [chartData, setChartData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    authFetch('http://127.0.0.1:8000/admin/stats')
+    const fetchStats = authFetch('http://127.0.0.1:8000/admin/stats')
       .then(r => r.json())
-      .then(data => { setStats(data); setLoading(false) })
-      .catch(() => setLoading(false))
+      .catch(() => null)
+    const fetchCharts = authFetch('http://127.0.0.1:8000/admin/chart-data')
+      .then(r => r.ok ? r.json() : null)
+      .catch(() => null)
+    Promise.all([fetchStats, fetchCharts]).then(([statsData, charts]) => {
+      setStats(statsData)
+      setChartData(charts)
+      setLoading(false)
+    })
   }, [])
 
   if (loading) return <div className="admin-loading">Đang tải...</div>
-  if (!stats)  return <div className="admin-loading">Không thể tải dữ liệu</div>
+  if (!stats)  return <div className="admin-loading">Không thể tải dữ liệu — kiểm tra kết nối backend</div>
 
   const statCards = [
     { label: 'Tổng sản phẩm',  value: stats.total_products, icon: '📦', color: '#6366f1', link: '/admin/products' },
     { label: 'Tổng đơn hàng',  value: stats.total_orders,   icon: '🧾', color: '#f59e0b', link: '/admin/orders' },
     { label: 'Tổng người dùng',value: stats.total_users,    icon: '👥', color: '#10b981', link: '/admin/users' },
-    { label: 'Doanh thu',       value: stats.total_revenue?.toLocaleString('vi-VN') + ' ₫', icon: '💰', color: '#ef4444', link: null },
+    { label: 'Doanh thu (đã giao)', value: stats.total_revenue?.toLocaleString('vi-VN') + ' ₫', icon: '💰', color: '#ef4444', link: null },
   ]
+
+  // Dữ liệu pie chart trạng thái đơn
+  const pieData = Object.entries(STATUS_LABEL)
+    .map(([key, s]) => ({ name: s.text, value: stats.orders_by_status?.[key] ?? 0, color: s.color }))
+    .filter(d => d.value > 0)
 
   return (
     <div className="admin-page">
@@ -55,7 +78,79 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Orders by status */}
+      {/* Charts row */}
+      {chartData && (
+        <div className="dashboard-charts-row">
+
+          {/* Bar chart: doanh thu 7 ngày */}
+          <div className="dashboard-chart-card wide">
+            <h2>Doanh thu 7 ngày gần đây</h2>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData.revenue_by_day} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis tickFormatter={formatVND} tick={{ fontSize: 11 }} width={48} />
+                <Tooltip
+                  formatter={(v) => [v.toLocaleString('vi-VN') + ' ₫', 'Doanh thu']}
+                  labelStyle={{ fontWeight: 600 }}
+                />
+                <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Pie chart: tỉ lệ đơn hàng */}
+          <div className="dashboard-chart-card">
+            <h2>Tỉ lệ đơn hàng</h2>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="45%"
+                    outerRadius={72}
+                    dataKey="value"
+                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    labelLine={false}
+                  >
+                    {pieData.map((entry, i) => (
+                      <Cell key={i} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                  <Tooltip formatter={(v, name) => [v + ' đơn', name]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="chart-empty">Chưa có dữ liệu</p>
+            )}
+          </div>
+
+        </div>
+      )}
+
+      {/* Top categories chart */}
+      {chartData?.top_categories?.length > 0 && (
+        <div className="admin-section">
+          <h2>Top danh mục bán chạy</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart
+              data={chartData.top_categories}
+              layout="vertical"
+              margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="category" tick={{ fontSize: 12 }} width={80} />
+              <Tooltip formatter={(v) => [v + ' sản phẩm', 'Số lượng bán']} />
+              <Bar dataKey="quantity" fill="#10b981" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Orders by status text summary */}
       <div className="admin-section">
         <h2>Đơn hàng theo trạng thái</h2>
         <div className="status-bar">
