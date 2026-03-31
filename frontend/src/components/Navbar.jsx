@@ -54,6 +54,7 @@ export default function Navbar() {
               </Link>
               <NotificationBell />
               <Link to="/orders" className="navbar-btn outline">Đơn hàng</Link>
+              <Link to="/profile" className="navbar-btn outline">Tài khoản</Link>
               <button onClick={handleLogout} className="navbar-btn outline">Đăng xuất</button>
             </>
           ) : (

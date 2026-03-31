@@ -12,6 +12,8 @@ class User(BaseModel):
     email: EmailStr = Field(..., title="Email")
     password: str = Field(..., title="Mật khẩu đã hash")
     full_name: Optional[str] = Field(None, title="Tên đầy đủ")
+    phone: Optional[str] = Field(None, title="Số điện thoại")
+    address: Optional[str] = Field(None, title="Địa chỉ")
     role: str = Field(default="user", title="Vai trò: user | admin")
 
     model_config = ConfigDict(
@@ -60,9 +62,24 @@ class UserResponse(BaseModel):
     username: str
     email: str
     full_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
     role: str
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class UserUpdate(BaseModel):
+    """Schema cập nhật thông tin cá nhân."""
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+
+
+class PasswordChange(BaseModel):
+    """Schema đổi mật khẩu."""
+    current_password: str
+    new_password: str = Field(..., min_length=6)
 
 
 class TokenResponse(BaseModel):

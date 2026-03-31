@@ -1,8 +1,9 @@
 from fastapi import APIRouter, HTTPException, status, Body, Depends
-from app.models.user import UserRegister, UserLogin, UserResponse, TokenResponse
+from app.models.user import UserRegister, UserLogin, UserResponse, TokenResponse, UserUpdate, PasswordChange
 from app.core.config import db
 from app.core.security import hash_password, verify_password, create_access_token
 from app.core.dependencies import get_current_user
+from bson import ObjectId
 
 router = APIRouter()
 
@@ -64,4 +65,34 @@ async def login_user(login_data: UserLogin = Body(...)):
 @router.get("/me", response_description="Thông tin user hiện tại", response_model=UserResponse)
 async def get_me(current_user: dict = Depends(get_current_user)):
     return current_user
+
+
+# 4. Cập nhật thông tin cá nhân
+@router.put("/me", response_description="Cập nhật thông tin cá nhân", response_model=UserResponse)
+async def update_profile(data: UserUpdate = Body(...), current_user: dict = Depends(get_current_user)):
+    update_fields = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="Không có dữ liệu để cập nhật")
+
+    await db.get_db()["users"].update_one(
+        {"_id": ObjectId(current_user["_id"])},
+        {"$set": update_fields}
+    )
+    updated = await db.get_db()["users"].find_one({"_id": ObjectId(current_user["_id"])})
+    updated["_id"] = str(updated["_id"])
+    return updated
+
+
+# 5. Đổi mật khẩu
+@router.put("/me/password", response_description="Đổi mật khẩu")
+async def change_password(data: PasswordChange = Body(...), current_user: dict = Depends(get_current_user)):
+    user = await db.get_db()["users"].find_one({"_id": ObjectId(current_user["_id"])})
+    if not verify_password(data.current_password, user["password"]):
+        raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không đúng")
+
+    await db.get_db()["users"].update_one(
+        {"_id": ObjectId(current_user["_id"])},
+        {"$set": {"password": hash_password(data.new_password)}}
+    )
+    return {"message": "Đổi mật khẩu thành công"}
 
