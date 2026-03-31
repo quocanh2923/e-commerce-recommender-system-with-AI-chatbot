@@ -34,17 +34,17 @@ export default function Navbar() {
         <form className="navbar-search" onSubmit={handleSearch}>
           <input
             type="text"
-            placeholder="Tìm kiếm sản phẩm..."
+            placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-          <button type="submit">Tìm</button>
+          <button type="submit">Search</button>
         </form>
 
         <div className="navbar-actions">
           {user ? (
             <>
-              <span className="navbar-username">Xin chào, {user.username}</span>
+              <span className="navbar-username">Hello, {user.username}</span>
               {user.role === 'admin' && (
                 <Link to="/admin" className="navbar-btn outline">Admin</Link>
               )}
@@ -53,15 +53,15 @@ export default function Navbar() {
                 {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
               </Link>
               <NotificationBell />
-              <Link to="/orders" className="navbar-btn outline">Đơn hàng</Link>
-              <Link to="/profile" className="navbar-btn outline">Tài khoản</Link>
-              <button onClick={handleLogout} className="navbar-btn outline">Đăng xuất</button>
+              <Link to="/orders" className="navbar-btn outline">Orders</Link>
+              <Link to="/profile" className="navbar-btn outline">Account</Link>
+              <button onClick={handleLogout} className="navbar-btn outline">Sign Out</button>
             </>
           ) : (
             <>
               <Link to="/cart" className="navbar-cart">🛒</Link>
-              <Link to="/login" className="navbar-btn outline">Đăng nhập</Link>
-              <Link to="/register" className="navbar-btn primary">Đăng ký</Link>
+              <Link to="/login" className="navbar-btn outline">Sign In</Link>
+              <Link to="/register" className="navbar-btn primary">Register</Link>
             </>
           )}
         </div>

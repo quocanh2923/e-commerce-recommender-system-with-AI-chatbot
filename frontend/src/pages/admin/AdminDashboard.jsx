@@ -7,11 +7,11 @@ import {
 } from 'recharts'
 
 const STATUS_LABEL = {
-  pending:    { text: 'Chờ xác nhận', color: '#f59e0b' },
-  processing: { text: 'Đang xử lý',   color: '#3b82f6' },
-  shipped:    { text: 'Đang giao',    color: '#8b5cf6' },
-  delivered:  { text: 'Đã giao',      color: '#10b981' },
-  cancelled:  { text: 'Đã huỷ',       color: '#ef4444' },
+  pending:    { text: 'Pending',    color: '#f59e0b' },
+  processing: { text: 'Processing', color: '#3b82f6' },
+  shipped:    { text: 'Shipped',    color: '#8b5cf6' },
+  delivered:  { text: 'Delivered',  color: '#10b981' },
+  cancelled:  { text: 'Cancelled',  color: '#ef4444' },
 }
 
 const formatVND = (v) => {
@@ -41,14 +41,14 @@ export default function AdminDashboard() {
     })
   }, [])
 
-  if (loading) return <div className="admin-loading">Đang tải...</div>
-  if (!stats)  return <div className="admin-loading">Không thể tải dữ liệu — kiểm tra kết nối backend</div>
+  if (loading) return <div className="admin-loading">Loading...</div>
+  if (!stats)  return <div className="admin-loading">Failed to load data — check backend connection</div>
 
   const statCards = [
-    { label: 'Tổng sản phẩm',  value: stats.total_products, icon: '📦', color: '#6366f1', link: '/admin/products' },
-    { label: 'Tổng đơn hàng',  value: stats.total_orders,   icon: '🧾', color: '#f59e0b', link: '/admin/orders' },
-    { label: 'Tổng người dùng',value: stats.total_users,    icon: '👥', color: '#10b981', link: '/admin/users' },
-    { label: 'Doanh thu (đã giao)', value: stats.total_revenue?.toLocaleString('vi-VN') + ' ₫', icon: '💰', color: '#ef4444', link: null },
+    { label: 'Total Products',      value: stats.total_products, icon: '📦', color: '#6366f1', link: '/admin/products' },
+    { label: 'Total Orders',         value: stats.total_orders,   icon: '🧾', color: '#f59e0b', link: '/admin/orders' },
+    { label: 'Total Users',          value: stats.total_users,    icon: '👥', color: '#10b981', link: '/admin/users' },
+    { label: 'Revenue (Delivered)',  value: stats.total_revenue?.toLocaleString('en-GB') + ' ₫', icon: '💰', color: '#ef4444', link: null },
   ]
 
   // Dữ liệu pie chart trạng thái đơn
@@ -84,14 +84,14 @@ export default function AdminDashboard() {
 
           {/* Bar chart: doanh thu 7 ngày */}
           <div className="dashboard-chart-card wide">
-            <h2>Doanh thu 7 ngày gần đây</h2>
+            <h2>Revenue Last 7 Days</h2>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={chartData.revenue_by_day} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                 <YAxis tickFormatter={formatVND} tick={{ fontSize: 11 }} width={48} />
                 <Tooltip
-                  formatter={(v) => [v.toLocaleString('vi-VN') + ' ₫', 'Doanh thu']}
+                  formatter={(v) => [v.toLocaleString('en-GB') + ' ₫', 'Revenue']}
                   labelStyle={{ fontWeight: 600 }}
                 />
                 <Bar dataKey="revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
@@ -101,7 +101,7 @@ export default function AdminDashboard() {
 
           {/* Pie chart: tỉ lệ đơn hàng */}
           <div className="dashboard-chart-card">
-            <h2>Tỉ lệ đơn hàng</h2>
+            <h2>Order Distribution</h2>
             {pieData.length > 0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <PieChart>
@@ -119,11 +119,11 @@ export default function AdminDashboard() {
                     ))}
                   </Pie>
                   <Legend iconSize={10} wrapperStyle={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v, name) => [v + ' đơn', name]} />
+                  <Tooltip formatter={(v, name) => [v + ' orders', name]} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="chart-empty">Chưa có dữ liệu</p>
+              <p className="chart-empty">No data yet</p>
             )}
           </div>
 
@@ -133,7 +133,7 @@ export default function AdminDashboard() {
       {/* Top categories chart */}
       {chartData?.top_categories?.length > 0 && (
         <div className="admin-section">
-          <h2>Top danh mục bán chạy</h2>
+          <h2>Top Selling Categories</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart
               data={chartData.top_categories}
@@ -143,7 +143,7 @@ export default function AdminDashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11 }} />
               <YAxis type="category" dataKey="category" tick={{ fontSize: 12 }} width={80} />
-              <Tooltip formatter={(v) => [v + ' sản phẩm', 'Số lượng bán']} />
+              <Tooltip formatter={(v) => [v + ' items', 'Qty Sold']} />
               <Bar dataKey="quantity" fill="#10b981" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
@@ -152,7 +152,7 @@ export default function AdminDashboard() {
 
       {/* Orders by status text summary */}
       <div className="admin-section">
-        <h2>Đơn hàng theo trạng thái</h2>
+        <h2>Orders by Status</h2>
         <div className="status-bar">
           {Object.entries(STATUS_LABEL).map(([key, s]) => (
             <div key={key} className="status-bar-item">
@@ -165,14 +165,14 @@ export default function AdminDashboard() {
 
       {/* Recent Orders */}
       <div className="admin-section">
-        <h2>Đơn hàng gần đây</h2>
+        <h2>Recent Orders</h2>
         <table className="admin-table">
           <thead>
             <tr>
-              <th>Mã đơn</th>
-              <th>Ngày đặt</th>
-              <th>Tổng tiền</th>
-              <th>Trạng thái</th>
+              <th>Order ID</th>
+              <th>Date</th>
+              <th>Total</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody>
@@ -181,8 +181,8 @@ export default function AdminDashboard() {
               return (
                 <tr key={order._id} className="clickable" onClick={() => navigate('/admin/orders')}>
                   <td><code>#{order._id.slice(-8).toUpperCase()}</code></td>
-                  <td>{new Date(order.created_at).toLocaleDateString('vi-VN')}</td>
-                  <td>{order.total?.toLocaleString('vi-VN')} ₫</td>
+                  <td>{new Date(order.created_at).toLocaleDateString('en-GB')}</td>
+                  <td>{order.total?.toLocaleString('en-GB')} ₫</td>
                   <td>
                     <span className="status-badge" style={{ background: s.color + '20', color: s.color }}>
                       {s.text}

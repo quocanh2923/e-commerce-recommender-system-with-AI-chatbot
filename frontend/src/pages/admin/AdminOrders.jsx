@@ -3,11 +3,11 @@ import { useAuth } from '../../context/AuthContext'
 import { useSearchParams } from 'react-router-dom'
 
 const STATUS_OPTIONS = [
-  { value: 'pending',    label: 'Chờ xác nhận', color: '#f59e0b' },
-  { value: 'processing', label: 'Đang xử lý',   color: '#3b82f6' },
-  { value: 'shipped',    label: 'Đang giao',    color: '#8b5cf6' },
-  { value: 'delivered',  label: 'Đã giao',      color: '#10b981' },
-  { value: 'cancelled',  label: 'Đã huỷ',       color: '#ef4444' },
+  { value: 'pending',    label: 'Pending',    color: '#f59e0b' },
+  { value: 'processing', label: 'Processing', color: '#3b82f6' },
+  { value: 'shipped',    label: 'Shipped',    color: '#8b5cf6' },
+  { value: 'delivered',  label: 'Delivered',  color: '#10b981' },
+  { value: 'cancelled',  label: 'Cancelled',  color: '#ef4444' },
 ]
 const STATUS_MAP = Object.fromEntries(STATUS_OPTIONS.map(s => [s.value, s]))
 
@@ -75,7 +75,7 @@ export default function AdminOrders() {
   return (
     <div className="admin-page">
       <div className="admin-page-header">
-        <h1 className="admin-page-title">Quản lý đơn hàng <span className="admin-count">({data.total})</span></h1>
+        <h1 className="admin-page-title">Order Management <span className="admin-count">({data.total})</span></h1>
       </div>
 
       {/* Filter */}
@@ -85,7 +85,7 @@ export default function AdminOrders() {
           value={statusFilter}
           onChange={e => { setFilter(e.target.value); setPage(1) }}
         >
-          <option value="">Tất cả trạng thái</option>
+          <option value="">All Statuses</option>
           {STATUS_OPTIONS.map(s => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}
@@ -93,17 +93,17 @@ export default function AdminOrders() {
       </div>
 
       {/* Table */}
-      {loading ? <div className="admin-loading">Đang tải...</div> : (
+      {loading ? <div className="admin-loading">Loading...</div> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Mã đơn</th>
-                <th>Ngày đặt</th>
-                <th>Sản phẩm</th>
-                <th>Tổng tiền</th>
-                <th>Trạng thái</th>
-                <th>Cập nhật</th>
+                <th>Order ID</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Update</th>
               </tr>
             </thead>
             <tbody>
@@ -112,7 +112,7 @@ export default function AdminOrders() {
                 return (
                   <tr key={order._id} className="clickable" onClick={() => openDetail(order)}>
                     <td><code>#{order._id.slice(-8).toUpperCase()}</code></td>
-                    <td>{new Date(order.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
+                    <td>{new Date(order.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}</td>
                     <td className="order-items-cell">
                       {order.items?.slice(0, 2).map((item, i) => (
                         <span key={i} className="order-item-tag">{item.name} ×{item.quantity}</span>
@@ -149,7 +149,7 @@ export default function AdminOrders() {
       {totalPages > 1 && (
         <div className="admin-pagination">
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-          <span>Trang {page} / {totalPages}</span>
+          <span>Page {page} of {totalPages}</span>
           <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
         </div>
       )}
@@ -161,11 +161,11 @@ export default function AdminOrders() {
         return (
           <div className="admin-modal-overlay" onClick={closeModal}>
             <div className="admin-modal" onClick={e => e.stopPropagation()}>
-              <h2>Chi tiết đơn hàng #{detail._id.slice(-8).toUpperCase()}</h2>
+              <h2>Order Details #{detail._id.slice(-8).toUpperCase()}</h2>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                  {new Date(detail.created_at).toLocaleDateString('vi-VN', {
+                  {new Date(detail.created_at).toLocaleDateString('en-GB', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit'
                   })}
@@ -177,13 +177,13 @@ export default function AdminOrders() {
 
               {(detail.username || detail.user_id) && (
                 <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 8 }}>
-                  Khách hàng: <strong>{detail.username || detail.user_id}</strong>
+                  Customer: <strong>{detail.username || detail.user_id}</strong>
                 </p>
               )}
 
               {detail.shipping_address && (
                 <div style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: '0.85rem' }}>
-                  <span style={{ fontWeight: 700, color: '#7c3aed', display: 'block', marginBottom: 4 }}>ĐỊA CHỈ GIAO HÀNG</span>
+                  <span style={{ fontWeight: 700, color: '#7c3aed', display: 'block', marginBottom: 4 }}>SHIPPING ADDRESS</span>
                   <span><strong>{detail.shipping_address.full_name}</strong> — {detail.shipping_address.phone}</span><br />
                   <span>{detail.shipping_address.address}</span>
                 </div>
@@ -219,21 +219,21 @@ export default function AdminOrders() {
 
               <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.9rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                  <span>Tạm tính</span>
-                  <span>{detail.subtotal?.toLocaleString('vi-VN')} ₫</span>
+                  <span>Subtotal</span>
+                  <span>{detail.subtotal?.toLocaleString('en-GB')} ₫</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b' }}>
-                  <span>Phí vận chuyển</span>
-                  <span>{detail.shipping?.toLocaleString('vi-VN')} ₫</span>
+                  <span>Shipping</span>
+                  <span>{detail.shipping?.toLocaleString('en-GB')} ₫</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: '1.05rem', borderTop: '2px solid #e2e8f0', paddingTop: 8, marginTop: 4 }}>
-                  <span>Tổng cộng</span>
-                  <span style={{ color: '#e74c3c' }}>{detail.total?.toLocaleString('vi-VN')} ₫</span>
+                  <span>Total</span>
+                  <span style={{ color: '#e74c3c' }}>{detail.total?.toLocaleString('en-GB')} ₫</span>
                 </div>
               </div>
 
               <div className="modal-actions" style={{ marginTop: 20 }}>
-                <button className="admin-btn outline" onClick={closeModal}>Đóng</button>
+                <button className="admin-btn outline" onClick={closeModal}>Close</button>
               </div>
             </div>
           </div>

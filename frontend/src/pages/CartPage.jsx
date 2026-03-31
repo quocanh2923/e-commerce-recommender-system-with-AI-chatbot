@@ -37,9 +37,9 @@ export default function CartPage() {
 
   const validateAddress = () => {
     const errs = {}
-    if (!address.full_name.trim()) errs.full_name = 'Vui lòng nhập họ tên'
-    if (!address.phone.trim() || address.phone.trim().length < 8) errs.phone = 'Số điện thoại không hợp lệ'
-    if (!address.address.trim() || address.address.trim().length < 5) errs.address = 'Vui lòng nhập địa chỉ đầy đủ'
+    if (!address.full_name.trim()) errs.full_name = 'Please enter your full name'
+    if (!address.phone.trim() || address.phone.trim().length < 8) errs.phone = 'Invalid phone number'
+    if (!address.address.trim() || address.address.trim().length < 5) errs.address = 'Please enter a complete address'
     return errs
   }
 
@@ -66,7 +66,7 @@ export default function CartPage() {
       await fetchCart()
       setOrderDone(data)
     } catch (err) {
-      alert('Đặt hàng thất bại: ' + err.message)
+      alert('Order failed: ' + err.message)
     } finally {
       setOrdering(false)
     }
@@ -77,18 +77,18 @@ export default function CartPage() {
       <div className="cart-wrapper">
         <div className="order-success">
           <div className="success-icon">✓</div>
-          <h2>Đặt hàng thành công!</h2>
-          <p>Mã đơn hàng: <strong>#{orderDone._id?.slice(-8).toUpperCase()}</strong></p>
-          <p className="total-confirm">Tổng tiền: <strong>{orderDone.total?.toLocaleString('vi-VN')} ₫</strong></p>
+          <h2>Order Placed Successfully!</h2>
+          <p>Order ID: <strong>#{orderDone._id?.slice(-8).toUpperCase()}</strong></p>
+          <p className="total-confirm">Total: <strong>{orderDone.total?.toLocaleString('vi-VN')} ₫</strong></p>
           {orderDone.shipping_address && (
             <p className="success-address">
-              Giao tới: <strong>{orderDone.shipping_address.full_name}</strong> — {orderDone.shipping_address.phone}<br />
+              Deliver to: <strong>{orderDone.shipping_address.full_name}</strong> — {orderDone.shipping_address.phone}<br />
               {orderDone.shipping_address.address}
             </p>
           )}
           <div className="success-actions">
-            <button onClick={() => navigate('/orders')} className="btn-primary">Xem đơn hàng</button>
-            <button onClick={() => navigate('/products')} className="btn-secondary">Tiếp tục mua sắm</button>
+            <button onClick={() => navigate('/orders')} className="btn-primary">View Orders</button>
+            <button onClick={() => navigate('/products')} className="btn-secondary">Continue Shopping</button>
           </div>
         </div>
       </div>
@@ -99,8 +99,8 @@ export default function CartPage() {
     return (
       <div className="cart-wrapper">
         <div className="cart-empty">
-          <p>🛒 Giỏ hàng của bạn đang trống</p>
-          <Link to="/" className="btn-primary">Khám phá sản phẩm</Link>
+          <p>🛒 Your cart is empty</p>
+          <Link to="/" className="btn-primary">Explore Products</Link>
         </div>
       </div>
     )
@@ -108,7 +108,7 @@ export default function CartPage() {
 
   return (
     <div className="cart-wrapper">
-      <h1>Giỏ hàng</h1>
+      <h1>Cart</h1>
       <div className="cart-layout">
 
         {/* Danh sách sản phẩm */}
@@ -148,29 +148,29 @@ export default function CartPage() {
 
         {/* Order Summary */}
         <div className="cart-summary">
-          <h3>Tóm tắt đơn hàng</h3>
+          <h3>Order Summary</h3>
           <div className="summary-row">
-            <span>Tạm tính</span>
+            <span>Subtotal</span>
             <span>{subtotal.toLocaleString('vi-VN')} ₫</span>
           </div>
           <div className="summary-row">
-            <span>Phí vận chuyển</span>
+            <span>Shipping</span>
             <span>{SHIPPING.toLocaleString('vi-VN')} ₫</span>
           </div>
           <div className="summary-row total">
-            <span>Tổng cộng</span>
+            <span>Total</span>
             <span>{total.toLocaleString('vi-VN')} ₫</span>
           </div>
 
           {!showAddressForm ? (
             <button className="btn-checkout" onClick={handleCheckoutClick}>
-              Đặt hàng ngay
+              Checkout
             </button>
           ) : (
             <div className="shipping-form">
-              <h4>Địa chỉ giao hàng</h4>
+              <h4>Shipping Address</h4>
               <div className="shipping-field">
-                <label>Họ và tên *</label>
+                <label>Full Name *</label>
                 <input
                   type="text"
                   value={address.full_name}
@@ -180,7 +180,7 @@ export default function CartPage() {
                 {addressErr.full_name && <span className="field-err">{addressErr.full_name}</span>}
               </div>
               <div className="shipping-field">
-                <label>Số điện thoại *</label>
+                <label>Phone Number *</label>
                 <input
                   type="tel"
                   value={address.phone}
@@ -190,11 +190,11 @@ export default function CartPage() {
                 {addressErr.phone && <span className="field-err">{addressErr.phone}</span>}
               </div>
               <div className="shipping-field">
-                <label>Địa chỉ *</label>
+                <label>Address *</label>
                 <textarea
                   value={address.address}
                   onChange={(e) => setAddress({ ...address, address: e.target.value })}
-                  placeholder="Số nhà, tên đường, quận/huyện, tỉnh/thành phố"
+                  placeholder="House no., street, district, city"
                   rows={3}
                 />
                 {addressErr.address && <span className="field-err">{addressErr.address}</span>}
@@ -205,14 +205,14 @@ export default function CartPage() {
                   onClick={() => setShowAddressForm(false)}
                   disabled={ordering}
                 >
-                  Quay lại
+                  Back
                 </button>
                 <button
                   className="btn-checkout"
                   onClick={handleCheckout}
                   disabled={ordering}
                 >
-                  {ordering ? 'Đang xử lý...' : 'Xác nhận đặt hàng'}
+                  {ordering ? 'Processing...' : 'Place Order'}
                 </button>
               </div>
             </div>

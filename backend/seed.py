@@ -73,29 +73,29 @@ CATEGORY_MAP = {
     "Socks & Tights":      "Vớ",
 }
 
-# ── Khoang gia theo danh muc (VND) ───────────────────────────
+# ── Khoang gia theo category (VND) ───────────────────
 PRICE_RANGES = {
-    "Áo":           (150_000, 800_000),
-    "Quần":         (200_000, 900_000),
-    "Giày":         (300_000, 2_000_000),
-    "Túi":          (400_000, 3_000_000),
-    "Phụ kiện":    (100_000, 500_000),
-    "Váy":          (250_000, 1_200_000),
-    "Đồng hồ":     (500_000, 5_000_000),
-    "Đồ lót":      (100_000, 400_000),
-    "Đồ bơi":      (200_000, 600_000),
-    "Vớ":           (50_000, 200_000),
+    "Tops":        (150_000, 800_000),
+    "Bottoms":     (200_000, 900_000),
+    "Shoes":       (300_000, 2_000_000),
+    "Bags":        (400_000, 3_000_000),
+    "Accessories": (100_000, 500_000),
+    "Dresses":     (250_000, 1_200_000),
+    "Watches":     (500_000, 5_000_000),
+    "Underwear":   (100_000, 400_000),
+    "Swimwear":    (200_000, 600_000),
+    "Socks":       (50_000, 200_000),
 }
 
 DEFAULT_PRICE_RANGE = (100_000, 1_000_000)
 
-# ── 4 nhom nguoi dung voi sở thich khac nhau (de train CF) ───
+# ── 4 nhom nguoi dung voi so thich khac nhau (de train CF) ───
 # Moi nhom: (ten_nhom, danh_sach_category_uu_tien, khoang_gia_max, rating_min)
 USER_SEGMENTS = [
-    ("budget",  ["Áo", "Quần", "Vớ"],                500_000,  3.0),
-    ("fashion", ["Váy", "Túi", "Phụ kiện"],        3_000_000,  4.0),
-    ("sport",   ["Giày", "Áo", "Phụ kiện"],        1_000_000,  3.5),
-    ("luxury",  ["Đồng hồ", "Túi", "Giày"],        5_000_000,  4.5),
+    ("budget",  ["Tops", "Bottoms", "Socks"],             500_000,  3.0),
+    ("fashion", ["Dresses", "Bags", "Accessories"],      3_000_000,  4.0),
+    ("sport",   ["Shoes", "Tops", "Accessories"],        1_000_000,  3.5),
+    ("luxury",  ["Watches", "Bags", "Shoes"],            5_000_000,  4.5),
 ]
 
 NUM_PRODUCTS   = 300  # lay 300 san pham dau tu articles.csv
@@ -140,33 +140,33 @@ def read_articles(limit: int) -> list[dict]:
                 "stock":       stock,
             })
 
-    # ── Them san pham Tui va Dong ho thu cong (H&M khong co) ──
+    # ── Them san pham Bags va Watches thu cong (H&M khong co) ──
     extra_products = [
-        {"name": "Túi Xách Tay Da Thật", "price": 850_000.0, "description": "Túi xách tay da bò thật, thiết kế sang trọng.", "image_url": "https://picsum.photos/seed/501/400/400", "category": "Túi", "rating": 4.5, "stock": 30},
-        {"name": "Túi Đeo Chéo Nữ Mini", "price": 320_000.0, "description": "Túi đeo chéo nhỏ gọn, phù hợp đi chơi.", "image_url": "https://picsum.photos/seed/502/400/400", "category": "Túi", "rating": 4.2, "stock": 50},
-        {"name": "Túi Tote Canvas Unisex", "price": 250_000.0, "description": "Túi vải canvas rộng rãi, đa năng.", "image_url": "https://picsum.photos/seed/503/400/400", "category": "Túi", "rating": 4.0, "stock": 80},
-        {"name": "Túi Xách Công Sở Cao Cấp", "price": 1_200_000.0, "description": "Túi da công sở thanh lịch, có ngăn laptop.", "image_url": "https://picsum.photos/seed/504/400/400", "category": "Túi", "rating": 4.7, "stock": 20},
-        {"name": "Túi Clutch Dạ Tiệc", "price": 450_000.0, "description": "Túi cầm tay dạ tiệc, đính đá lấp lánh.", "image_url": "https://picsum.photos/seed/505/400/400", "category": "Túi", "rating": 4.3, "stock": 35},
-        {"name": "Balo Thời Trang Nữ", "price": 380_000.0, "description": "Balo nhỏ thời trang, chống nước.", "image_url": "https://picsum.photos/seed/506/400/400", "category": "Túi", "rating": 4.1, "stock": 60},
-        {"name": "Túi Bucket Thổ Cẩm", "price": 290_000.0, "description": "Túi bucket họa tiết thổ cẩm độc đáo.", "image_url": "https://picsum.photos/seed/507/400/400", "category": "Túi", "rating": 3.9, "stock": 45},
-        {"name": "Túi Chain Bag Xích Kim Loại", "price": 550_000.0, "description": "Túi dây xích kim loại, phong cách Hàn Quốc.", "image_url": "https://picsum.photos/seed/508/400/400", "category": "Túi", "rating": 4.4, "stock": 25},
-        {"name": "Túi Đeo Hông Fanny Pack", "price": 180_000.0, "description": "Túi đeo hông tiện lợi cho hoạt động ngoài trời.", "image_url": "https://picsum.photos/seed/509/400/400", "category": "Túi", "rating": 3.8, "stock": 70},
-        {"name": "Túi Hộp Vuông PU Leather", "price": 420_000.0, "description": "Túi hộp vuông da PU sang trọng.", "image_url": "https://picsum.photos/seed/510/400/400", "category": "Túi", "rating": 4.2, "stock": 40},
-        {"name": "Đồng Hồ Nam Dây Da Nâu", "price": 1_500_000.0, "description": "Đồng hồ cơ nam dây da nâu, mặt số trắng.", "image_url": "https://picsum.photos/seed/521/400/400", "category": "Đồng hồ", "rating": 4.6, "stock": 15},
-        {"name": "Đồng Hồ Nữ Dây Kim Loại", "price": 980_000.0, "description": "Đồng hồ nữ dây kim loại vàng rose, mặt tròn nhỏ.", "image_url": "https://picsum.photos/seed/522/400/400", "category": "Đồng hồ", "rating": 4.4, "stock": 20},
-        {"name": "Đồng Hồ Thông Minh Smartwatch", "price": 2_500_000.0, "description": "Smartwatch theo dõi sức khỏe, thông báo điện thoại.", "image_url": "https://picsum.photos/seed/523/400/400", "category": "Đồng hồ", "rating": 4.8, "stock": 10},
-        {"name": "Đồng Hồ Đôi Couple", "price": 1_200_000.0, "description": "Set đồng hồ đôi nam nữ phong cách tối giản.", "image_url": "https://picsum.photos/seed/524/400/400", "category": "Đồng hồ", "rating": 4.3, "stock": 18},
-        {"name": "Đồng Hồ Thể Thao Chống Nước", "price": 750_000.0, "description": "Đồng hồ thể thao chống nước 50m, dây silicone.", "image_url": "https://picsum.photos/seed/525/400/400", "category": "Đồng hồ", "rating": 4.2, "stock": 25},
-        {"name": "Đồng Hồ Cơ Skeleton Lộ Máy", "price": 3_200_000.0, "description": "Đồng hồ cơ skeleton lộ máy, thiết kế nghệ thuật.", "image_url": "https://picsum.photos/seed/526/400/400", "category": "Đồng hồ", "rating": 4.7, "stock": 8},
-        {"name": "Đồng Hồ Dạ Quang Vintage", "price": 650_000.0, "description": "Đồng hồ phong cách vintage, kim dạ quang.", "image_url": "https://picsum.photos/seed/527/400/400", "category": "Đồng hồ", "rating": 4.0, "stock": 30},
-        {"name": "Váy Maxi Hoa Nhí Mùa Hè", "price": 380_000.0, "description": "Váy maxi dài hoa nhí nhẹ nhàng, mặc mùa hè.", "image_url": "https://picsum.photos/seed/531/400/400", "category": "Váy", "rating": 4.3, "stock": 45},
-        {"name": "Váy Công Sở A-Line", "price": 450_000.0, "description": "Váy A-line công sở thanh lịch, chất liệu linen.", "image_url": "https://picsum.photos/seed/532/400/400", "category": "Váy", "rating": 4.5, "stock": 35},
-        {"name": "Váy Len Ôm Body Mùa Đông", "price": 520_000.0, "description": "Váy len ôm body ấm áp phong cách Hàn Quốc.", "image_url": "https://picsum.photos/seed/533/400/400", "category": "Váy", "rating": 4.2, "stock": 40},
-        {"name": "Quần Jean Skinny Nữ", "price": 350_000.0, "description": "Quần jean skinny ôm dáng, co giãn 4 chiều.", "image_url": "https://picsum.photos/seed/541/400/400", "category": "Quần", "rating": 4.4, "stock": 60},
-        {"name": "Quần Tây Nam Công Sở", "price": 420_000.0, "description": "Quần tây nam mặc công sở, dáng slim fit.", "image_url": "https://picsum.photos/seed/542/400/400", "category": "Quần", "rating": 4.3, "stock": 40},
-        {"name": "Giày Sneaker Trắng Unisex", "price": 650_000.0, "description": "Giày sneaker trắng cổ thấp, đế êm.", "image_url": "https://picsum.photos/seed/551/400/400", "category": "Giày", "rating": 4.6, "stock": 55},
-        {"name": "Giày Cao Gót Mũi Nhọn", "price": 480_000.0, "description": "Giày cao gót 7cm mũi nhọn màu đen.", "image_url": "https://picsum.photos/seed/552/400/400", "category": "Giày", "rating": 4.2, "stock": 30},
-        {"name": "Giày Sandal Đế Bằng", "price": 280_000.0, "description": "Giày sandal đế bằng thoáng mát mùa hè.", "image_url": "https://picsum.photos/seed/553/400/400", "category": "Giày", "rating": 4.0, "stock": 70},
+        {"name": "Genuine Leather Handbag", "price": 850_000.0, "description": "Genuine cowhide leather handbag, elegant and sophisticated design.", "image_url": "https://picsum.photos/seed/501/400/400", "category": "Bags", "rating": 4.5, "stock": 30},
+        {"name": "Mini Crossbody Bag", "price": 320_000.0, "description": "Compact crossbody bag, perfect for casual outings.", "image_url": "https://picsum.photos/seed/502/400/400", "category": "Bags", "rating": 4.2, "stock": 50},
+        {"name": "Canvas Tote Bag Unisex", "price": 250_000.0, "description": "Spacious canvas tote bag, versatile for everyday use.", "image_url": "https://picsum.photos/seed/503/400/400", "category": "Bags", "rating": 4.0, "stock": 80},
+        {"name": "Premium Office Shoulder Bag", "price": 1_200_000.0, "description": "Elegant leather office bag with a dedicated laptop compartment.", "image_url": "https://picsum.photos/seed/504/400/400", "category": "Bags", "rating": 4.7, "stock": 20},
+        {"name": "Evening Clutch Bag", "price": 450_000.0, "description": "Sparkling rhinestone evening clutch bag for special occasions.", "image_url": "https://picsum.photos/seed/505/400/400", "category": "Bags", "rating": 4.3, "stock": 35},
+        {"name": "Trendy Women Backpack", "price": 380_000.0, "description": "Stylish small backpack, water-resistant material.", "image_url": "https://picsum.photos/seed/506/400/400", "category": "Bags", "rating": 4.1, "stock": 60},
+        {"name": "Embroidered Bucket Bag", "price": 290_000.0, "description": "Unique embroidered bucket bag with bohemian style.", "image_url": "https://picsum.photos/seed/507/400/400", "category": "Bags", "rating": 3.9, "stock": 45},
+        {"name": "Metal Chain Bag", "price": 550_000.0, "description": "Metal chain strap bag, Korean fashion-inspired style.", "image_url": "https://picsum.photos/seed/508/400/400", "category": "Bags", "rating": 4.4, "stock": 25},
+        {"name": "Outdoor Fanny Pack", "price": 180_000.0, "description": "Convenient waist/fanny pack for outdoor activities.", "image_url": "https://picsum.photos/seed/509/400/400", "category": "Bags", "rating": 3.8, "stock": 70},
+        {"name": "Square Box PU Leather Bag", "price": 420_000.0, "description": "Luxurious square box-shaped PU leather bag.", "image_url": "https://picsum.photos/seed/510/400/400", "category": "Bags", "rating": 4.2, "stock": 40},
+        {"name": "Men's Brown Leather Watch", "price": 1_500_000.0, "description": "Mechanical men's watch with brown leather strap and white dial.", "image_url": "https://picsum.photos/seed/521/400/400", "category": "Watches", "rating": 4.6, "stock": 15},
+        {"name": "Women's Metal Strap Watch", "price": 980_000.0, "description": "Women's watch with rose gold metal strap and small round face.", "image_url": "https://picsum.photos/seed/522/400/400", "category": "Watches", "rating": 4.4, "stock": 20},
+        {"name": "Smartwatch Fitness Tracker", "price": 2_500_000.0, "description": "Smartwatch with health monitoring and phone notifications.", "image_url": "https://picsum.photos/seed/523/400/400", "category": "Watches", "rating": 4.8, "stock": 10},
+        {"name": "Couple Matching Watch Set", "price": 1_200_000.0, "description": "Matching his & hers watch set with minimalist design.", "image_url": "https://picsum.photos/seed/524/400/400", "category": "Watches", "rating": 4.3, "stock": 18},
+        {"name": "Sports Water-Resistant Watch", "price": 750_000.0, "description": "Sports watch with 50m water resistance and silicone strap.", "image_url": "https://picsum.photos/seed/525/400/400", "category": "Watches", "rating": 4.2, "stock": 25},
+        {"name": "Skeleton Mechanical Watch", "price": 3_200_000.0, "description": "Open-heart skeleton mechanical watch, artistic design.", "image_url": "https://picsum.photos/seed/526/400/400", "category": "Watches", "rating": 4.7, "stock": 8},
+        {"name": "Vintage Luminous Watch", "price": 650_000.0, "description": "Retro vintage-style watch with luminous hands.", "image_url": "https://picsum.photos/seed/527/400/400", "category": "Watches", "rating": 4.0, "stock": 30},
+        {"name": "Floral Maxi Summer Dress", "price": 380_000.0, "description": "Light floral maxi dress, perfect for summer wear.", "image_url": "https://picsum.photos/seed/531/400/400", "category": "Dresses", "rating": 4.3, "stock": 45},
+        {"name": "A-Line Office Dress", "price": 450_000.0, "description": "Elegant A-line office dress in linen fabric.", "image_url": "https://picsum.photos/seed/532/400/400", "category": "Dresses", "rating": 4.5, "stock": 35},
+        {"name": "Bodycon Knit Winter Dress", "price": 520_000.0, "description": "Warm bodycon knit dress in Korean style.", "image_url": "https://picsum.photos/seed/533/400/400", "category": "Dresses", "rating": 4.2, "stock": 40},
+        {"name": "Women's Skinny Jeans", "price": 350_000.0, "description": "Skinny fit jeans with 4-way stretch fabric.", "image_url": "https://picsum.photos/seed/541/400/400", "category": "Bottoms", "rating": 4.4, "stock": 60},
+        {"name": "Men's Slim Fit Trousers", "price": 420_000.0, "description": "Slim fit formal trousers for office wear.", "image_url": "https://picsum.photos/seed/542/400/400", "category": "Bottoms", "rating": 4.3, "stock": 40},
+        {"name": "White Unisex Sneakers", "price": 650_000.0, "description": "Low-top white sneakers with cushioned sole.", "image_url": "https://picsum.photos/seed/551/400/400", "category": "Shoes", "rating": 4.6, "stock": 55},
+        {"name": "Pointed-Toe High Heels", "price": 480_000.0, "description": "7cm pointed-toe heels in classic black.", "image_url": "https://picsum.photos/seed/552/400/400", "category": "Shoes", "rating": 4.2, "stock": 30},
+        {"name": "Flat Summer Sandals", "price": 280_000.0, "description": "Breathable flat sandals for warm weather.", "image_url": "https://picsum.photos/seed/553/400/400", "category": "Shoes", "rating": 4.0, "stock": 70},
     ]
     products.extend(extra_products)
     return products

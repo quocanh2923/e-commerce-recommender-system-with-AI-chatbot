@@ -5,12 +5,12 @@ import './ProductListingPage.css'
 
 const API_URL = 'http://127.0.0.1:8000'
 
-const CATEGORIES = ['Áo', 'Quần', 'Giày', 'Túi', 'Phụ kiện', 'Váy', 'Đồng hồ', 'Đồ lót', 'Đồ bơi', 'Vớ']
+const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Bags', 'Accessories', 'Dresses', 'Watches', 'Underwear', 'Swimwear', 'Socks']
 const SORT_OPTIONS = [
-  { value: 'newest', label: 'Mới nhất' },
-  { value: 'price_asc', label: 'Giá: Thấp → Cao' },
-  { value: 'price_desc', label: 'Giá: Cao → Thấp' },
-  { value: 'rating', label: 'Đánh giá cao nhất' },
+  { value: 'newest',     label: 'Newest' },
+  { value: 'price_asc',  label: 'Price: Low → High' },
+  { value: 'price_desc', label: 'Price: High → Low' },
+  { value: 'rating',     label: 'Highest Rated' },
 ]
 
 function StarRating({ rating = 0 }) {
@@ -159,15 +159,15 @@ export default function ProductListingPage() {
     <div className="listing-container">
       {/* ===== SIDEBAR ===== */}
       <aside className="listing-sidebar">
-        <h3 className="sidebar-title">Bộ lọc</h3>
+        <h3 className="sidebar-title">Filters</h3>
 
         {/* Tìm kiếm */}
         <div className="sidebar-section">
-          <label className="sidebar-label">Tìm kiếm</label>
+          <label className="sidebar-label">Search</label>
           <input
             type="text"
             className="sidebar-input"
-            placeholder="Tên sản phẩm..."
+            placeholder="Product name..."
             value={searchInput}
             onChange={(e) => handleSearchChange(e.target.value)}
           />
@@ -175,13 +175,13 @@ export default function ProductListingPage() {
 
         {/* Danh mục */}
         <div className="sidebar-section">
-          <label className="sidebar-label">Danh mục</label>
+          <label className="sidebar-label">Category</label>
           <div className="category-list">
             <button
               className={`category-btn ${selectedCategory === '' ? 'active' : ''}`}
               onClick={() => handleCategoryClick('')}
             >
-              Tất cả
+              All
             </button>
             {CATEGORIES.map((cat) => (
               <button
@@ -197,12 +197,12 @@ export default function ProductListingPage() {
 
         {/* Khoảng giá */}
         <div className="sidebar-section">
-          <label className="sidebar-label">Khoảng giá (VNĐ)</label>
+          <label className="sidebar-label">Price Range (VND)</label>
           <div className="price-range">
             <input
               type="number"
               className="sidebar-input price-input"
-              placeholder="Từ"
+              placeholder="Min"
               value={minPrice}
               onChange={(e) => setMinPrice(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && applyPriceFilter()}
@@ -212,7 +212,7 @@ export default function ProductListingPage() {
             <input
               type="number"
               className="sidebar-input price-input"
-              placeholder="Đến"
+              placeholder="Max"
               value={maxPrice}
               onChange={(e) => setMaxPrice(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && applyPriceFilter()}
@@ -222,11 +222,11 @@ export default function ProductListingPage() {
         </div>
 
         <button className="filter-apply-btn" onClick={applyPriceFilter}>
-          Áp dụng giá
+          Apply
         </button>
         {hasActiveFilter && (
           <button className="filter-clear-btn" onClick={clearFilters}>
-            Xóa bộ lọc
+            Clear Filters
           </button>
         )}
       </aside>
@@ -236,11 +236,11 @@ export default function ProductListingPage() {
         {/* Toolbar */}
         <div className="listing-toolbar">
           <span className="listing-count">
-            {products.length} sản phẩm
-            {hasActiveFilter && <span className="filter-tag"> (đã lọc)</span>}
+            {products.length} products
+            {hasActiveFilter && <span className="filter-tag"> (filtered)</span>}
           </span>
           <div className="sort-wrapper">
-            <label>Sắp xếp: </label>
+            <label>Sort: </label>
             <select value={sortBy} onChange={(e) => handleSortChange(e.target.value)}>
               {SORT_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -253,12 +253,12 @@ export default function ProductListingPage() {
         {loading && products.length === 0 ? (
           <div className="listing-loading">
             <span className="spinner" />
-            <p>Đang tải sản phẩm...</p>
+            <p>Loading products...</p>
           </div>
         ) : products.length === 0 ? (
           <div className="listing-empty">
-            <p>Không tìm thấy sản phẩm nào.</p>
-            <button className="filter-clear-btn" onClick={clearFilters}>Xóa bộ lọc</button>
+            <p>No products found.</p>
+            <button className="filter-clear-btn" onClick={clearFilters}>Clear Filters</button>
           </div>
         ) : (
           <>
@@ -285,7 +285,7 @@ export default function ProductListingPage() {
                         {p.price.toLocaleString('vi-VN')}đ
                       </span>
                       {p.stock === 0 ? (
-                        <span className="out-of-stock-badge">Hết hàng</span>
+                        <span className="out-of-stock-badge">Out of Stock</span>
                       ) : (
                         <button
                           className="add-cart-btn"
@@ -294,7 +294,7 @@ export default function ProductListingPage() {
                             addToCart(p)
                           }}
                         >
-                          + Giỏ hàng
+                          + Cart
                         </button>
                       )}
                     </div>
@@ -311,7 +311,7 @@ export default function ProductListingPage() {
                   onClick={handleLoadMore}
                   disabled={loading}
                 >
-                  {loading ? 'Đang tải...' : 'Xem thêm'}
+                  {loading ? 'Loading...' : 'Load More'}
                 </button>
               </div>
             )}

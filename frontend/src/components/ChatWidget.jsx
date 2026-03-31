@@ -5,16 +5,16 @@ import './ChatWidget.css'
 const API_URL = 'http://127.0.0.1:8000'
 
 const QUICK_QUESTIONS = [
-  'Gợi ý áo cho tôi',
-  'Có giày thể thao không?',
-  'Sản phẩm nào đang hot?',
-  'Chính sách đổi trả?',
+  'Suggest shirts for me',
+  'Do you have sports shoes?',
+  "What's trending now?",
+  'Return policy?',
 ]
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Xin chào! Tôi là ShopBot 🤖\nTôi có thể giúp bạn tìm sản phẩm, tư vấn thời trang, và giải đáp thắc mắc. Hãy hỏi tôi nhé!' }
+    { role: 'assistant', content: 'Hello! I\'m ShopBot 🤖\nI can help you find products, give fashion advice, and answer your questions. Ask me anything!' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -74,7 +74,7 @@ export default function ChatWidget() {
     } catch (err) {
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: `Xin lỗi, có lỗi xảy ra: ${err.message}. Vui lòng thử lại sau.`
+        content: `Sorry, an error occurred: ${err.message}. Please try again later.`
       }])
     } finally {
       setLoading(false)
@@ -98,7 +98,7 @@ export default function ChatWidget() {
               <div className="chat-avatar">🤖</div>
               <div>
                 <div className="chat-title">ShopBot</div>
-                <div className="chat-subtitle">Trợ lý mua sắm AI</div>
+                <div className="chat-subtitle">AI Shopping Assistant</div>
               </div>
             </div>
             <button className="chat-close-btn" onClick={() => setOpen(false)}>✕</button>
@@ -116,7 +116,7 @@ export default function ChatWidget() {
                 {/* Sản phẩm gợi ý đính kèm */}
                 {msg.products && msg.products.length > 0 && (
                   <div className="chat-products">
-                    <p className="chat-products-label">Sản phẩm liên quan:</p>
+                    <p className="chat-products-label">Related products:</p>
                     <div className="chat-products-list">
                       {msg.products.slice(0, 3).map((p) => (
                         <div
@@ -174,7 +174,7 @@ export default function ChatWidget() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Nhập tin nhắn... (Enter để gửi)"
+              placeholder="Type a message... (Enter to send)"
               rows={1}
               disabled={loading}
             />
@@ -193,7 +193,7 @@ export default function ChatWidget() {
       <button
         className={`chat-fab ${open ? 'chat-fab--open' : ''}`}
         onClick={() => setOpen(!open)}
-        aria-label="Mở chatbot"
+        aria-label="Open chatbot"
       >
         {open ? '✕' : '💬'}
       </button>

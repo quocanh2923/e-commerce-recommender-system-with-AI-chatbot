@@ -4,10 +4,10 @@ import NotificationBell from '../../components/NotificationBell'
 import './Admin.css'
 
 const NAV_ITEMS = [
-  { to: '/admin',          label: 'Dashboard',    icon: '📊', end: true },
-  { to: '/admin/products', label: 'Sản phẩm',     icon: '📦' },
-  { to: '/admin/orders',   label: 'Đơn hàng',     icon: '🧾' },
-  { to: '/admin/users',    label: 'Người dùng',   icon: '👥' },
+  { to: '/admin',          label: 'Dashboard',  icon: '📊', end: true },
+  { to: '/admin/products', label: 'Products',    icon: '📦' },
+  { to: '/admin/orders',   label: 'Orders',      icon: '🧾' },
+  { to: '/admin/users',    label: 'Users',       icon: '👥' },
 ]
 
 export default function AdminLayout() {
@@ -37,8 +37,8 @@ export default function AdminLayout() {
         </nav>
         <div className="admin-sidebar-footer">
           <span className="admin-user-info">👤 {user?.username}</span>
-          <button className="admin-logout-btn" onClick={handleLogout}>Đăng xuất</button>
-          <button className="admin-back-btn" onClick={() => navigate('/')}>← Về trang chủ</button>
+          <button className="admin-logout-btn" onClick={handleLogout}>Sign Out</button>
+          <button className="admin-back-btn" onClick={() => navigate('/')}>← Back to Store</button>
         </div>
       </aside>
 

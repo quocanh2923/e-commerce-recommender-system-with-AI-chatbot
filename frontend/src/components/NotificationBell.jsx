@@ -66,12 +66,12 @@ export default function NotificationBell({ isAdmin = false }) {
     const utcStr = dateStr && !dateStr.endsWith('Z') && !dateStr.includes('+') ? dateStr + 'Z' : dateStr
     const diff = Date.now() - new Date(utcStr).getTime()
     const mins = Math.floor(diff / 60000)
-    if (mins < 1) return 'Vừa xong'
-    if (mins < 60) return `${mins} phút trước`
+    if (mins < 1) return 'Just now'
+    if (mins < 60) return `${mins} minutes ago`
     const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours} giờ trước`
+    if (hours < 24) return `${hours} hours ago`
     const days = Math.floor(hours / 24)
-    return `${days} ngày trước`
+    return `${days} days ago`
   }
 
   if (!user) return null
@@ -86,15 +86,15 @@ export default function NotificationBell({ isAdmin = false }) {
       {open && (
         <div className="noti-dropdown">
           <div className="noti-dropdown-header">
-            <span className="noti-dropdown-title">Thông báo</span>
+            <span className="noti-dropdown-title">Notifications</span>
             {data.unread > 0 && (
-              <button className="noti-mark-all" onClick={handleMarkAllRead}>Đọc tất cả</button>
+              <button className="noti-mark-all" onClick={handleMarkAllRead}>Mark all read</button>
             )}
           </div>
 
           <div className="noti-dropdown-list">
             {data.notifications.length === 0 ? (
-              <div className="noti-empty">Chưa có thông báo</div>
+              <div className="noti-empty">No notifications</div>
             ) : (
               data.notifications.map(noti => (
                 <div

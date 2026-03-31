@@ -4,18 +4,18 @@ import { useAuth } from '../context/AuthContext'
 import './OrdersPage.css'
 
 const STEPS = [
-  { key: 'pending',    label: 'Chờ xác nhận', icon: '🕐' },
-  { key: 'processing', label: 'Đang xử lý',   icon: '⚙️' },
-  { key: 'shipped',    label: 'Đang giao',    icon: '🚚' },
-  { key: 'delivered',  label: 'Đã giao',      icon: '✅' },
+  { key: 'pending',    label: 'Pending',    icon: '🕐' },
+  { key: 'processing', label: 'Processing', icon: '⚙️' },
+  { key: 'shipped',    label: 'Shipped',    icon: '🚚' },
+  { key: 'delivered',  label: 'Delivered',  icon: '✅' },
 ]
 
 const STATUS_LABEL = {
-  pending:    { text: 'Chờ xác nhận', color: '#f59e0b' },
-  processing: { text: 'Đang xử lý',   color: '#3b82f6' },
-  shipped:    { text: 'Đang giao',    color: '#8b5cf6' },
-  delivered:  { text: 'Đã giao',      color: '#10b981' },
-  cancelled:  { text: 'Đã huỷ',       color: '#ef4444' },
+  pending:    { text: 'Pending',    color: '#f59e0b' },
+  processing: { text: 'Processing', color: '#3b82f6' },
+  shipped:    { text: 'Shipped',    color: '#8b5cf6' },
+  delivered:  { text: 'Delivered', color: '#10b981' },
+  cancelled:  { text: 'Cancelled', color: '#ef4444' },
 }
 
 /* ── Star Rating Component ─────────────────────── */
@@ -66,9 +66,9 @@ export default function OrderDetailPage() {
       if (!res.ok) throw new Error(data.detail)
       setOrder(prev => ({ ...prev, status: 'cancelled' }))
       setShowCancelConfirm(false)
-      showToast('success', 'Đã huỷ đơn hàng thành công')
+      showToast('success', 'Order cancelled successfully')
     } catch (err) {
-      showToast('error', err.message || 'Huỷ đơn thất bại')
+      showToast('error', err.message || 'Failed to cancel order')
     } finally {
       setCancelling(false)
     }
@@ -77,7 +77,7 @@ export default function OrderDetailPage() {
   useEffect(() => {
     authFetch(`http://127.0.0.1:8000/orders/${id}`)
       .then(res => {
-        if (!res.ok) throw new Error('Không tìm thấy đơn hàng')
+        if (!res.ok) throw new Error('Order not found')
         return res.json()
       })
       .then(data => { setOrder(data); setLoading(false) })
@@ -133,15 +133,15 @@ export default function OrderDetailPage() {
     }
     setSubmitting(false)
     if (success > 0 && fail === 0) {
-      showToast('success', `Đã gửi đánh giá ${success} sản phẩm thành công!`)
+      showToast('success', `Successfully reviewed ${success} item(s)!`)
     } else if (success > 0 && fail > 0) {
-      showToast('error', `Đánh giá ${success} thành công, ${fail} thất bại`)
+      showToast('error', `${success} review(s) submitted, ${fail} failed`)
     } else {
-      showToast('error', 'Gửi đánh giá thất bại, vui lòng thử lại')
+      showToast('error', 'Failed to submit reviews, please try again')
     }
   }
 
-  if (loading) return <div className="orders-container"><p className="orders-status">Đang tải...</p></div>
+  if (loading) return <div className="orders-container"><p className="orders-status">Loading...</p></div>
   if (error)   return <div className="orders-container"><p className="orders-status error">{error}</p></div>
   if (!order)  return null
 
@@ -155,13 +155,13 @@ export default function OrderDetailPage() {
 
   return (
     <div className="orders-container">
-      <button className="back-btn" onClick={() => navigate('/orders')}>← Đơn hàng của tôi</button>
+      <button className="back-btn" onClick={() => navigate('/orders')}>← My Orders</button>
 
       <div className="order-detail-card">
         {/* Header */}
         <div className="order-detail-header">
           <div>
-            <h2>Đơn hàng #{order._id.slice(-8).toUpperCase()}</h2>
+            <h2>Order #{order._id.slice(-8).toUpperCase()}</h2>
             <p className="order-date">{date}</p>
           </div>
           <div className="order-header-right">
@@ -170,7 +170,7 @@ export default function OrderDetailPage() {
             </span>
             {order.status === 'pending' && (
               <button className="cancel-order-btn" onClick={() => setShowCancelConfirm(true)}>
-                Huỷ đơn hàng
+                Cancel Order
               </button>
             )}
           </div>
@@ -180,23 +180,23 @@ export default function OrderDetailPage() {
         {showCancelConfirm && (
           <div className="cancel-confirm-overlay" onClick={() => !cancelling && setShowCancelConfirm(false)}>
             <div className="cancel-confirm-modal" onClick={e => e.stopPropagation()}>
-              <h3>Xác nhận huỷ đơn</h3>
-              <p>Bạn có chắc muốn huỷ đơn hàng <strong>#{order._id.slice(-8).toUpperCase()}</strong> không?</p>
-              <p className="cancel-confirm-note">Đơn hàng đã xác nhận hoặc đang giao không thể huỷ.</p>
+              <h3>Confirm Cancellation</h3>
+              <p>Are you sure you want to cancel order <strong>#{order._id.slice(-8).toUpperCase()}</strong>?</p>
+              <p className="cancel-confirm-note">Orders that have been confirmed or shipped cannot be cancelled.</p>
               <div className="cancel-confirm-actions">
                 <button
                   className="cancel-confirm-no"
                   onClick={() => setShowCancelConfirm(false)}
                   disabled={cancelling}
                 >
-                  Không, giữ lại
+                  No, Keep It
                 </button>
                 <button
                   className="cancel-confirm-yes"
                   onClick={handleCancel}
                   disabled={cancelling}
                 >
-                  {cancelling ? 'Đang huỷ...' : 'Xác nhận huỷ'}
+                  {cancelling ? 'Cancelling...' : 'Confirm Cancel'}
                 </button>
               </div>
             </div>
@@ -224,13 +224,13 @@ export default function OrderDetailPage() {
 
         {isCancelled && (
           <div className="order-cancelled-banner">
-            ❌ Đơn hàng này đã bị huỷ
+            ❌ This order has been cancelled
           </div>
         )}
 
         {/* Danh sách sản phẩm */}
         <div className="order-detail-section">
-          <h3>Sản phẩm đã đặt</h3>
+          <h3>Items Ordered</h3>
           <div className="order-items-list">
             {order.items.map((item, i) => {
               const reviewData = reviews[item.product_id]
@@ -251,7 +251,7 @@ export default function OrderDetailPage() {
                       {alreadyRated ? (
                         <span className="rating-done">
                           <StarRating value={alreadyRated} onChange={() => {}} disabled />
-                          <span className="rating-done-text">Đã đánh giá</span>
+                          <span className="rating-done-text">Reviewed</span>
                           {reviewData.feedback && (
                             <div className="rating-feedback-display">"{reviewData.feedback}"</div>
                           )}
@@ -269,7 +269,7 @@ export default function OrderDetailPage() {
                           {pending && (
                             <textarea
                               className="rating-feedback-input"
-                              placeholder="Viết nhận xét của bạn (tuỳ chọn)..."
+                              placeholder="Write your review (optional)..."
                               value={pendingFeedback[item.product_id] || ''}
                               onChange={e => setPendingFeedback(prev => ({ ...prev, [item.product_id]: e.target.value }))}
                               disabled={submitting}
@@ -295,8 +295,8 @@ export default function OrderDetailPage() {
                 disabled={submitting}
               >
                 {submitting
-                  ? 'Đang gửi...'
-                  : `Gửi đánh giá (${Object.keys(pendingRatings).length} sản phẩm)`}
+                  ? 'Submitting...'
+                  : `Submit Reviews (${Object.keys(pendingRatings).length} item(s))`}
               </button>
             </div>
           )}
@@ -306,21 +306,21 @@ export default function OrderDetailPage() {
         <div className="order-detail-summary">
           {order.shipping_address && (
             <div className="order-shipping-address">
-              <h4>Địa chỉ giao hàng</h4>
+              <h4>Shipping Address</h4>
               <p><strong>{order.shipping_address.full_name}</strong> — {order.shipping_address.phone}</p>
               <p>{order.shipping_address.address}</p>
             </div>
           )}
           <div className="summary-row">
-            <span>Tạm tính</span>
-            <span>{order.subtotal.toLocaleString('vi-VN')}đ</span>
+            <span>Subtotal</span>
+            <span>{order.subtotal.toLocaleString('vi-VN')}₫</span>
           </div>
           <div className="summary-row">
-            <span>Phí vận chuyển</span>
-            <span>{order.shipping.toLocaleString('vi-VN')}đ</span>
+            <span>Shipping</span>
+            <span>{order.shipping.toLocaleString('vi-VN')}₫</span>
           </div>
           <div className="summary-row total-row">
-            <span>Tổng cộng</span>
+            <span>Total</span>
             <span>{order.total.toLocaleString('vi-VN')}đ</span>
           </div>
         </div>

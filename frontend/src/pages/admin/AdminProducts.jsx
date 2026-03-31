@@ -58,7 +58,7 @@ export default function AdminProducts() {
   }
 
   const handleSave = async () => {
-    if (!form.name || !form.price || !form.category) return alert('Vui lòng điền đủ Tên, Giá, Danh mục')
+    if (!form.name || !form.price || !form.category) return alert('Please fill in Name, Price, and Category')
     setSaving(true)
     const payload = { name: form.name, price: Number(form.price), category: form.category, description: form.description, image_url: form.image_url, stock: Number(form.stock) || 0 }
     const url    = modal === 'edit' ? `http://127.0.0.1:8000/admin/products/${editProduct._id}` : 'http://127.0.0.1:8000/admin/products'
@@ -81,33 +81,33 @@ export default function AdminProducts() {
   return (
     <div className="admin-page">
       <div className="admin-page-header">
-        <h1 className="admin-page-title">Quản lý sản phẩm <span className="admin-count">({data.total})</span></h1>
-        <button className="admin-btn primary" onClick={openAdd}>+ Thêm sản phẩm</button>
+        <h1 className="admin-page-title">Product Management <span className="admin-count">({data.total})</span></h1>
+        <button className="admin-btn primary" onClick={openAdd}>+ Add Product</button>
       </div>
 
       {/* Search */}
       <div className="admin-toolbar">
         <input
           className="admin-search-input"
-          placeholder="Tìm tên sản phẩm..."
+          placeholder="Search product name..."
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1) }}
         />
       </div>
 
       {/* Table */}
-      {loading ? <div className="admin-loading">Đang tải...</div> : (
+      {loading ? <div className="admin-loading">Loading...</div> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Ảnh</th>
-                <th>Tên sản phẩm</th>
-                <th>Danh mục</th>
-                <th>Giá</th>
-                <th>Tồn kho</th>
-                <th>Đánh giá</th>
-                <th>Thao tác</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Stock</th>
+                <th>Rating</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -125,8 +125,8 @@ export default function AdminProducts() {
                   <td>⭐ {p.rating ?? 0}</td>
                   <td>
                     <div className="action-btns">
-                      <button className="admin-btn sm outline" onClick={() => openEdit(p)}>Sửa</button>
-                      <button className="admin-btn sm danger"   onClick={() => handleDelete(p._id)}>Xoá</button>
+                      <button className="admin-btn sm outline" onClick={() => openEdit(p)}>Edit</button>
+                      <button className="admin-btn sm danger"   onClick={() => handleDelete(p._id)}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -140,7 +140,7 @@ export default function AdminProducts() {
       {totalPages > 1 && (
         <div className="admin-pagination">
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-          <span>Trang {page} / {totalPages}</span>
+          <span>Page {page} / {totalPages}</span>
           <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
         </div>
       )}
@@ -149,13 +149,13 @@ export default function AdminProducts() {
       {modal && (
         <div className="admin-modal-overlay" onClick={() => setModal(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <h2>{modal === 'edit' ? 'Sửa sản phẩm' : 'Thêm sản phẩm mới'}</h2>
+            <h2>{modal === 'edit' ? 'Edit Product' : 'Add New Product'}</h2>
             <div className="admin-form-grid">
               {[
-                { key: 'name',        label: 'Tên sản phẩm *',  type: 'text' },
-                { key: 'price',       label: 'Giá (₫) *',        type: 'number' },
-                { key: 'category',    label: 'Danh mục *',        type: 'text' },
-                { key: 'stock',       label: 'Tồn kho',           type: 'number' },
+                { key: 'name',        label: 'Product Name *',  type: 'text' },
+                { key: 'price',       label: 'Price (₫) *',       type: 'number' },
+                { key: 'category',    label: 'Category *',       type: 'text' },
+                { key: 'stock',       label: 'Stock',            type: 'number' },
               ].map(f => (
                 <label key={f.key} className="admin-form-label">
                   {f.label}
@@ -170,7 +170,7 @@ export default function AdminProducts() {
 
               {/* Image upload */}
               <label className="admin-form-label">
-                Ảnh sản phẩm
+                Product Image
                 <input
                   type="file"
                   accept="image/*"
@@ -178,12 +178,12 @@ export default function AdminProducts() {
                   onChange={handleImageUpload}
                   disabled={uploading}
                 />
-                {uploading && <span style={{ fontSize: '0.8rem', color: '#3b82f6' }}>Đang tải ảnh...</span>}
+                {uploading && <span style={{ fontSize: '0.8rem', color: '#3b82f6' }}>Uploading image...</span>}
               </label>
 
               {/* Or URL */}
               <label className="admin-form-label">
-                Hoặc nhập URL ảnh
+                Or enter image URL
                 <input
                   type="text"
                   className="admin-input"
@@ -196,7 +196,7 @@ export default function AdminProducts() {
               {/* Image preview */}
               {form.image_url && (
                 <div className="admin-form-label full-width">
-                  <span>Xem trước</span>
+                  <span>Preview</span>
                   <img
                     src={form.image_url}
                     alt="Preview"
@@ -207,7 +207,7 @@ export default function AdminProducts() {
               )}
 
               <label className="admin-form-label full-width">
-                Mô tả
+                Description
                 <textarea
                   className="admin-input"
                   rows={3}
@@ -217,9 +217,9 @@ export default function AdminProducts() {
               </label>
             </div>
             <div className="modal-actions">
-              <button className="admin-btn outline" onClick={() => setModal(null)}>Huỷ</button>
+              <button className="admin-btn outline" onClick={() => setModal(null)}>Cancel</button>
               <button className="admin-btn primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Đang lưu...' : 'Lưu'}
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </div>

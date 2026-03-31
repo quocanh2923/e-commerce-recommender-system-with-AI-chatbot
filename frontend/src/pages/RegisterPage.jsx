@@ -21,7 +21,7 @@ export default function RegisterPage() {
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Đăng ký thất bại')
+      if (!res.ok) throw new Error(data.detail || 'Registration failed')
 
       navigate('/login')
     } catch (err) {
@@ -34,16 +34,16 @@ export default function RegisterPage() {
   return (
     <div className="auth-wrapper">
       <div className="auth-card">
-        <h2>Tạo tài khoản</h2>
-        <p className="auth-sub">Tham gia ShopAI ngay hôm nay</p>
+        <h2>Create Account</h2>
+        <p className="auth-sub">Join ShopAI today</p>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <label>Họ và tên</label>
+          <label>Full Name</label>
           <input
             type="text"
-            placeholder="Nguyễn Văn A"
+            placeholder="John Doe"
             value={form.full_name}
             onChange={(e) => setForm({ ...form, full_name: e.target.value })}
           />
@@ -66,10 +66,10 @@ export default function RegisterPage() {
             required
           />
 
-          <label>Mật khẩu</label>
+          <label>Password</label>
           <input
             type="password"
-            placeholder="Tối thiểu 6 ký tự"
+            placeholder="At least 6 characters"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
@@ -77,12 +77,12 @@ export default function RegisterPage() {
           />
 
           <button type="submit" disabled={loading} className="auth-submit">
-            {loading ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+            {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
         <p className="auth-switch">
-          Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
+          Already have an account? <Link to="/login">Sign In</Link>
         </p>
       </div>
     </div>

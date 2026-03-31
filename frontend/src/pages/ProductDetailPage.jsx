@@ -20,7 +20,7 @@ export default function ProductDetailPage() {
     setLoading(true)
     fetch(`http://127.0.0.1:8000/products/${id}`)
       .then(res => {
-        if (!res.ok) throw new Error('Không tìm thấy sản phẩm')
+        if (!res.ok) throw new Error('Product not found')
         return res.json()
       })
       .then(data => { setProduct(data); setLoading(false) })
@@ -45,13 +45,13 @@ export default function ProductDetailPage() {
     }
   }
 
-  if (loading) return <div className="detail-loading">Đang tải...</div>
+  if (loading) return <div className="detail-loading">Loading...</div>
   if (error) return <div className="detail-loading error">{error}</div>
   if (!product) return null
 
   return (
     <div className="detail-wrapper">
-      <button className="back-btn" onClick={() => navigate(-1)}>← Quay lại</button>
+      <button className="back-btn" onClick={() => navigate(-1)}>← Back</button>
 
       <div className="detail-main">
         {/* Ảnh sản phẩm */}
@@ -73,7 +73,7 @@ export default function ProductDetailPage() {
 
           {product.description && (
             <div className="detail-description">
-              <h4>Mô tả sản phẩm</h4>
+              <h4>Description</h4>
               <p>{product.description}</p>
             </div>
           )}
@@ -83,16 +83,16 @@ export default function ProductDetailPage() {
             onClick={handleAddToCart}
             disabled={product.stock === 0}
           >
-            {product.stock === 0 ? 'Hết hàng' : addedToCart ? '✓ Đã thêm vào giỏ!' : 'Thêm vào giỏ hàng'}
+            {product.stock === 0 ? 'Out of Stock' : addedToCart ? '✓ Added to Cart!' : 'Add to Cart'}
           </button>
 
           {product.stock > 0 && product.stock <= 5 && (
-            <p className="stock-warning">⚠️ Chỉ còn {product.stock} sản phẩm!</p>
+            <p className="stock-warning">⚠️ Only {product.stock} left in stock!</p>
           )}
 
           {!user && (
             <p className="login-hint">
-              <a href="/login">Đăng nhập</a> để thêm vào giỏ hàng
+              <a href="/login">Sign in</a> to add to cart
             </p>
           )}
         </div>
@@ -102,7 +102,7 @@ export default function ProductDetailPage() {
       <RecommendSection
         type="similar"
         productId={id}
-        title="Sản phẩm tương tự"
+        title="Similar Products"
         limit={8}
       />
     </div>

@@ -4,11 +4,11 @@ import { useAuth } from '../context/AuthContext'
 import './OrdersPage.css'
 
 const STATUS_LABEL = {
-  pending:    { text: 'Chờ xác nhận', color: '#f59e0b' },
-  processing: { text: 'Đang xử lý',   color: '#3b82f6' },
-  shipped:    { text: 'Đang giao',    color: '#8b5cf6' },
-  delivered:  { text: 'Đã giao',      color: '#10b981' },
-  cancelled:  { text: 'Đã huỷ',       color: '#ef4444' },
+  pending:    { text: 'Pending',    color: '#f59e0b' },
+  processing: { text: 'Processing', color: '#3b82f6' },
+  shipped:    { text: 'Shipped',    color: '#8b5cf6' },
+  delivered:  { text: 'Delivered', color: '#10b981' },
+  cancelled:  { text: 'Cancelled', color: '#ef4444' },
 }
 
 export default function OrdersPage() {
@@ -28,21 +28,21 @@ export default function OrdersPage() {
       .catch(err => { setError(err.message); setLoading(false) })
   }, [token])
 
-  if (loading) return <div className="orders-container"><p className="orders-status">Đang tải đơn hàng...</p></div>
-  if (error)   return <div className="orders-container"><p className="orders-status error">Lỗi: {error}</p></div>
+  if (loading) return <div className="orders-container"><p className="orders-status">Loading orders...</p></div>
+  if (error)   return <div className="orders-container"><p className="orders-status error">Error: {error}</p></div>
 
   return (
     <div className="orders-container">
       <div className="orders-header">
-        <h1>Đơn hàng của tôi</h1>
-        <Link to="/products" className="orders-shop-btn">Tiếp tục mua sắm →</Link>
+        <h1>My Orders</h1>
+        <Link to="/products" className="orders-shop-btn">Continue Shopping →</Link>
       </div>
 
       {orders.length === 0 ? (
         <div className="orders-empty">
           <div className="orders-empty-icon">📦</div>
-          <p>Bạn chưa có đơn hàng nào.</p>
-          <Link to="/products" className="orders-shop-btn">Khám phá sản phẩm</Link>
+          <p>You don't have any orders yet.</p>
+          <Link to="/products" className="orders-shop-btn">Explore Products</Link>
         </div>
       ) : (
         <div className="orders-list">
@@ -75,15 +75,15 @@ export default function OrdersPage() {
                     </span>
                   ))}
                   {order.items.length > 3 && (
-                    <span className="order-item-pill order-item-more">+{order.items.length - 3} sản phẩm</span>
+                    <span className="order-item-pill order-item-more">+{order.items.length - 3} more</span>
                   )}
                 </div>
 
                 <div className="order-card-bottom">
                   <span className="order-total">
-                    Tổng: <strong>{order.total.toLocaleString('vi-VN')}đ</strong>
+                    Total: <strong>{order.total.toLocaleString('vi-VN')}₫</strong>
                   </span>
-                  <span className="order-detail-link">Xem chi tiết →</span>
+                  <span className="order-detail-link">View Details →</span>
                 </div>
               </div>
             )

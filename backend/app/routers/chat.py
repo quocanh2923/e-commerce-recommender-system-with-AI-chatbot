@@ -171,11 +171,9 @@ async def chat(request: ChatRequest):
             )
             reply_text = completion.choices[0].message.content or "Xin loi, toi khong the tra loi."
             return ChatResponse(reply=reply_text, products=related_products)
-        except Exception as e:
-            err_str = str(e)
-            if "rate_limit" not in err_str.lower() and "429" not in err_str and "quota" not in err_str.lower():
-                raise HTTPException(status_code=500, detail=f"Loi Groq: {err_str[:200]}")
-            # Het rate limit Groq -> thu Gemini
+        except Exception:
+            # Bat ky loi nao (rate limit, invalid key, timeout...) -> thu Gemini
+            pass
 
     # ── Thu Gemini thu hai (secondary) ──
     if gemini_key:

@@ -47,7 +47,7 @@ export default function AdminUsers() {
   return (
     <div className="admin-page">
       <div className="admin-page-header">
-        <h1 className="admin-page-title">Quản lý người dùng <span className="admin-count">({data.total})</span></h1>
+        <h1 className="admin-page-title">User Management <span className="admin-count">({data.total})</span></h1>
       </div>
 
       {/* Search */}
@@ -56,19 +56,19 @@ export default function AdminUsers() {
           <input
             className="admin-input"
             type="text"
-            placeholder="Tìm theo tên, email..."
+            placeholder="Search by name, email..."
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
             style={{ minWidth: 260 }}
           />
-          <button type="submit" className="admin-btn primary">Tìm</button>
+          <button type="submit" className="admin-btn primary">Search</button>
           {search && (
-            <button type="button" className="admin-btn outline" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}>Xoá lọc</button>
+            <button type="button" className="admin-btn outline" onClick={() => { setSearchInput(''); setSearch(''); setPage(1) }}>Clear</button>
           )}
         </form>
       </div>
 
-      {loading ? <div className="admin-loading">Đang tải...</div> : (
+      {loading ? <div className="admin-loading">Loading...</div> : (
         <div className="admin-table-wrap">
           <table className="admin-table">
             <thead>
@@ -76,10 +76,10 @@ export default function AdminUsers() {
                 <th>#</th>
                 <th>Username</th>
                 <th>Email</th>
-                <th>Họ tên</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Thao tác</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -98,7 +98,7 @@ export default function AdminUsers() {
                     </td>
                     <td>
                       <span className={`status-badge-sm ${blocked ? 'blocked' : 'active'}`}>
-                        {blocked ? '🔒 Đã khoá' : '✅ Hoạt động'}
+                        {blocked ? '🔒 Blocked' : '✅ Active'}
                       </span>
                     </td>
                     <td>
@@ -108,7 +108,7 @@ export default function AdminUsers() {
                           disabled={toggling === u._id}
                           onClick={() => handleToggleBlock(u._id, blocked)}
                         >
-                          {toggling === u._id ? '...' : blocked ? 'Mở khoá' : 'Khoá'}
+                          {toggling === u._id ? '...' : blocked ? 'Unblock' : 'Block'}
                         </button>
                       )}
                     </td>
@@ -123,7 +123,7 @@ export default function AdminUsers() {
       {totalPages > 1 && (
         <div className="admin-pagination">
           <button disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹</button>
-          <span>Trang {page} / {totalPages}</span>
+          <span>Page {page} / {totalPages}</span>
           <button disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>›</button>
         </div>
       )}

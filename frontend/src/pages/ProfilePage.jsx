@@ -33,14 +33,14 @@ export default function ProfilePage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setProfileMsg({ type: 'error', text: data.detail || 'Cập nhật thất bại' })
+        setProfileMsg({ type: 'error', text: data.detail || 'Update failed' })
       } else {
         // Cập nhật lại user trong localStorage/context
         login(token, data)
-        setProfileMsg({ type: 'success', text: 'Cập nhật thông tin thành công!' })
+        setProfileMsg({ type: 'success', text: 'Profile updated successfully!' })
       }
     } catch {
-      setProfileMsg({ type: 'error', text: 'Lỗi kết nối máy chủ' })
+      setProfileMsg({ type: 'error', text: 'Server connection error' })
     } finally {
       setProfileLoading(false)
     }
@@ -54,7 +54,7 @@ export default function ProfilePage() {
     e.preventDefault()
     setPwMsg(null)
     if (pwForm.new_password !== pwForm.confirm_password) {
-      setPwMsg({ type: 'error', text: 'Mật khẩu mới không khớp' })
+      setPwMsg({ type: 'error', text: 'New passwords do not match' })
       return
     }
     setPwLoading(true)
@@ -69,13 +69,13 @@ export default function ProfilePage() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setPwMsg({ type: 'error', text: data.detail || 'Đổi mật khẩu thất bại' })
+        setPwMsg({ type: 'error', text: data.detail || 'Failed to change password' })
       } else {
-        setPwMsg({ type: 'success', text: 'Đổi mật khẩu thành công!' })
+        setPwMsg({ type: 'success', text: 'Password changed successfully!' })
         setPwForm({ current_password: '', new_password: '', confirm_password: '' })
       }
     } catch {
-      setPwMsg({ type: 'error', text: 'Lỗi kết nối máy chủ' })
+      setPwMsg({ type: 'error', text: 'Server connection error' })
     } finally {
       setPwLoading(false)
     }
@@ -83,13 +83,13 @@ export default function ProfilePage() {
 
   return (
     <div className="profile-page">
-      <h1 className="profile-title">Trang cá nhân</h1>
+      <h1 className="profile-title">My Profile</h1>
 
       {/* ── Thông tin tài khoản (chỉ đọc) ── */}
       <div className="profile-card">
-        <h2>Thông tin tài khoản</h2>
+        <h2>Account Information</h2>
         <div className="profile-info-row">
-          <span className="profile-label">Tên đăng nhập</span>
+          <span className="profile-label">Username</span>
           <span className="profile-value">{user?.username}</span>
         </div>
         <div className="profile-info-row">
@@ -97,42 +97,42 @@ export default function ProfilePage() {
           <span className="profile-value">{user?.email}</span>
         </div>
         <div className="profile-info-row">
-          <span className="profile-label">Vai trò</span>
-          <span className={`profile-role-badge ${user?.role}`}>{user?.role === 'admin' ? 'Quản trị viên' : 'Khách hàng'}</span>
+          <span className="profile-label">Role</span>
+          <span className={`profile-role-badge ${user?.role}`}>{user?.role === 'admin' ? 'Administrator' : 'Customer'}</span>
         </div>
       </div>
 
       {/* ── Chỉnh sửa thông tin cá nhân ── */}
       <div className="profile-card">
-        <h2>Chỉnh sửa thông tin</h2>
+        <h2>Edit Information</h2>
         <form onSubmit={handleProfileSubmit} className="profile-form">
           <div className="profile-field">
-            <label>Họ và tên</label>
+            <label>Full Name</label>
             <input
               type="text"
               name="full_name"
               value={profileForm.full_name}
               onChange={handleProfileChange}
-              placeholder="Nhập họ và tên"
+              placeholder="Enter your full name"
             />
           </div>
           <div className="profile-field">
-            <label>Số điện thoại</label>
+            <label>Phone Number</label>
             <input
               type="tel"
               name="phone"
               value={profileForm.phone}
               onChange={handleProfileChange}
-              placeholder="Nhập số điện thoại"
+              placeholder="Enter phone number"
             />
           </div>
           <div className="profile-field">
-            <label>Địa chỉ</label>
+            <label>Address</label>
             <textarea
               name="address"
               value={profileForm.address}
               onChange={handleProfileChange}
-              placeholder="Nhập địa chỉ giao hàng mặc định"
+              placeholder="Enter your default shipping address"
               rows={3}
             />
           </div>
@@ -140,28 +140,28 @@ export default function ProfilePage() {
             <div className={`profile-msg ${profileMsg.type}`}>{profileMsg.text}</div>
           )}
           <button type="submit" className="profile-btn" disabled={profileLoading}>
-            {profileLoading ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {profileLoading ? 'Saving...' : 'Save Changes'}
           </button>
         </form>
       </div>
 
       {/* ── Đổi mật khẩu ── */}
       <div className="profile-card">
-        <h2>Đổi mật khẩu</h2>
+        <h2>Change Password</h2>
         <form onSubmit={handlePwSubmit} className="profile-form">
           <div className="profile-field">
-            <label>Mật khẩu hiện tại</label>
+            <label>Current Password</label>
             <input
               type="password"
               name="current_password"
               value={pwForm.current_password}
               onChange={handlePwChange}
               required
-              placeholder="Nhập mật khẩu hiện tại"
+              placeholder="Enter current password"
             />
           </div>
           <div className="profile-field">
-            <label>Mật khẩu mới</label>
+            <label>New Password</label>
             <input
               type="password"
               name="new_password"
@@ -169,25 +169,25 @@ export default function ProfilePage() {
               onChange={handlePwChange}
               required
               minLength={6}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder="At least 6 characters"
             />
           </div>
           <div className="profile-field">
-            <label>Xác nhận mật khẩu mới</label>
+            <label>Confirm New Password</label>
             <input
               type="password"
               name="confirm_password"
               value={pwForm.confirm_password}
               onChange={handlePwChange}
               required
-              placeholder="Nhập lại mật khẩu mới"
+              placeholder="Re-enter new password"
             />
           </div>
           {pwMsg && (
             <div className={`profile-msg ${pwMsg.type}`}>{pwMsg.text}</div>
           )}
           <button type="submit" className="profile-btn" disabled={pwLoading}>
-            {pwLoading ? 'Đang xử lý...' : 'Đổi mật khẩu'}
+            {pwLoading ? 'Processing...' : 'Change Password'}
           </button>
         </form>
       </div>

@@ -23,7 +23,7 @@ export default function LoginPage() {
       })
 
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail || 'Đăng nhập thất bại')
+      if (!res.ok) throw new Error(data.detail || 'Sign in failed')
 
       login(data.access_token, data.user)
       navigate('/')
@@ -37,8 +37,8 @@ export default function LoginPage() {
   return (
     <div className="auth-wrapper">
       <div className="auth-card">
-        <h2>Đăng nhập</h2>
-        <p className="auth-sub">Chào mừng trở lại!</p>
+        <h2>Sign In</h2>
+        <p className="auth-sub">Welcome back!</p>
 
         {error && <div className="auth-error">{error}</div>}
 
@@ -52,7 +52,7 @@ export default function LoginPage() {
             required
           />
 
-          <label>Mật khẩu</label>
+          <label>Password</label>
           <input
             type="password"
             placeholder="••••••••"
@@ -62,12 +62,12 @@ export default function LoginPage() {
           />
 
           <button type="submit" disabled={loading} className="auth-submit">
-            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
         <p className="auth-switch">
-          Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
+          Don't have an account? <Link to="/register">Register now</Link>
         </p>
       </div>
     </div>

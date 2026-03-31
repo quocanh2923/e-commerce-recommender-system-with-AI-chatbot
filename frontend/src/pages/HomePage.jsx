@@ -26,23 +26,23 @@ export default function HomePage() {
       {/* ── Hero Banner ── */}
       <div className="hero-banner">
         <div className="hero-content">
-          <h1>Khám phá thời trang <span className="hero-highlight">AI</span></h1>
-          <p>Gợi ý sản phẩm thông minh dành riêng cho bạn</p>
-          <Link to="/products" className="hero-btn">Mua sắm ngay →</Link>
+          <h1>Discover Fashion with <span className="hero-highlight">AI</span></h1>
+          <p>Smart product recommendations tailored for you</p>
+          <Link to="/products" className="hero-btn">Shop Now →</Link>
         </div>
       </div>
 
       {/* ── Sản phẩm mới nhất ── */}
       <div className="container">
         <div className="section-header">
-          <h2>Sản phẩm mới nhất</h2>
-          <Link to="/products" className="view-all-link">Xem tất cả →</Link>
+          <h2>Latest Products</h2>
+          <Link to="/products" className="view-all-link">View All →</Link>
         </div>
 
         {loading ? (
-          <p className="status-msg">Đang tải...</p>
+          <p className="status-msg">Loading...</p>
         ) : error ? (
-          <p className="status-msg error">Lỗi: {error}</p>
+          <p className="status-msg error">Error: {error}</p>
         ) : (
           <div className="products-grid">
             {products.map((product) => (
@@ -74,13 +74,13 @@ export default function HomePage() {
         <RecommendSection
           type="for-you"
           token={token}
-          title={`Gợi ý cho bạn, ${user.username} ✨`}
+          title={`For you, ${user.username} ✨`}
           limit={8}
         />
       ) : (
         <RecommendSection
           type="popular"
-          title="Sản phẩm phổ biến 🔥"
+          title="Popular Products 🔥"
           limit={8}
         />
       )}
@@ -89,7 +89,7 @@ export default function HomePage() {
       {user && (
         <RecommendSection
           type="popular"
-          title="Được yêu thích nhiều nhất 🔥"
+          title="Most Loved 🔥"
           limit={8}
         />
       )}
