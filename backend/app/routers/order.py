@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Body
 from typing import List
 from datetime import datetime, timezone
 from bson import ObjectId
-from app.models.order import Order, OrderItem
+from app.models.order import Order, OrderItem, OrderCreate
 from app.core.config import db
 from app.core.dependencies import get_current_user
 from app.routers.notification import create_notification
@@ -12,7 +12,7 @@ router = APIRouter()
 
 # 1. Tạo đơn hàng từ giỏ hàng hiện tại
 @router.post("/", response_model=Order, status_code=status.HTTP_201_CREATED)
-async def create_order(current_user: dict = Depends(get_current_user)):
+async def create_order(order_data: OrderCreate = Body(...), current_user: dict = Depends(get_current_user)):
     user_id = current_user["_id"]
 
     cart = await db.get_db()["carts"].find_one({"user_id": user_id})
@@ -31,6 +31,7 @@ async def create_order(current_user: dict = Depends(get_current_user)):
         "shipping": shipping,
         "total": total,
         "status": "pending",
+        "shipping_address": order_data.shipping_address.model_dump(),
         "created_at": datetime.now(timezone.utc),
     }
 

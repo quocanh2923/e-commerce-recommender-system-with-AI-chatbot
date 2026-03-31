@@ -252,6 +252,13 @@ export default function OrderDetailPage() {
 
         {/* Tổng tiền */}
         <div className="order-detail-summary">
+          {order.shipping_address && (
+            <div className="order-shipping-address">
+              <h4>Địa chỉ giao hàng</h4>
+              <p><strong>{order.shipping_address.full_name}</strong> — {order.shipping_address.phone}</p>
+              <p>{order.shipping_address.address}</p>
+            </div>
+          )}
           <div className="summary-row">
             <span>Tạm tính</span>
             <span>{order.subtotal.toLocaleString('vi-VN')}đ</span>

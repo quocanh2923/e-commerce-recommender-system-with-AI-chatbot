@@ -213,6 +213,77 @@
 
 .success-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
 
+/* --- Shipping address form --- */
+.shipping-form {
+  margin-top: 16px;
+  border-top: 1px solid #ede9fe;
+  padding-top: 16px;
+}
+
+.shipping-form h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+
+.shipping-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.shipping-field label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.shipping-field input,
+.shipping-field textarea {
+  padding: 9px 12px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.shipping-field input:focus,
+.shipping-field textarea:focus {
+  outline: none;
+  border-color: #7c3aed;
+}
+
+.field-err {
+  font-size: 0.78rem;
+  color: #dc2626;
+}
+
+.shipping-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.shipping-actions .btn-secondary {
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+}
+
+.shipping-actions .btn-checkout {
+  flex: 1;
+}
+
+.success-address {
+  margin-top: 8px !important;
+  font-size: 0.92rem;
+  color: #444;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
   .cart-layout { grid-template-columns: 1fr; }
   .cart-summary { position: static; }

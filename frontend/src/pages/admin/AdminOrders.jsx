@@ -176,9 +176,17 @@ export default function AdminOrders() {
               </div>
 
               {(detail.username || detail.user_id) && (
-                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 12 }}>
+                <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 8 }}>
                   Khách hàng: <strong>{detail.username || detail.user_id}</strong>
                 </p>
+              )}
+
+              {detail.shipping_address && (
+                <div style={{ background: '#f8f7ff', border: '1px solid #ede9fe', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: '0.85rem' }}>
+                  <span style={{ fontWeight: 700, color: '#7c3aed', display: 'block', marginBottom: 4 }}>ĐỊA CHỈ GIAO HÀNG</span>
+                  <span><strong>{detail.shipping_address.full_name}</strong> — {detail.shipping_address.phone}</span><br />
+                  <span>{detail.shipping_address.address}</span>
+                </div>
               )}
 
               {/* Products table with reviews */}
