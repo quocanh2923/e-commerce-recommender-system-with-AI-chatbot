@@ -104,3 +104,42 @@ async def get_order(order_id: str, current_user: dict = Depends(get_current_user
 
     order["_id"] = str(order["_id"])
     return order
+
+
+# 4. Huỷ đơn hàng (chỉ khi status là pending)
+@router.delete("/{order_id}", status_code=200)
+async def cancel_order(order_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        oid = ObjectId(order_id)
+    except Exception:
+        raise HTTPException(status_code=400, detail="ID không hợp lệ")
+
+    order = await db.get_db()["orders"].find_one({
+        "_id": oid,
+        "user_id": current_user["_id"]
+    })
+    if not order:
+        raise HTTPException(status_code=404, detail="Không tìm thấy đơn hàng")
+
+    if order["status"] != "pending":
+        raise HTTPException(status_code=400, detail="Chỉ có thể huỷ đơn hàng đang chờ xác nhận")
+
+    await db.get_db()["orders"].update_one(
+        {"_id": oid},
+        {"$set": {"status": "cancelled"}}
+    )
+
+    # Thông báo cho admin
+    order_code = order_id[-8:].upper()
+    admins = await db.get_db()["users"].find({"role": "admin"}).to_list(None)
+    for adm in admins:
+        await create_notification(
+            user_id=str(adm["_id"]),
+            title="Đơn hàng bị huỷ",
+            message=f"Đơn hàng #{order_code} đã bị khách huỷ",
+            ntype="order",
+            link="/admin/orders",
+            target="admin",
+        )
+
+    return {"message": "Đã huỷ đơn hàng thành công"}

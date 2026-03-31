@@ -45,15 +45,33 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [reviews, setReviews] = useState({})        // { product_id: { rating, feedback } }
-  const [pendingRatings, setPendingRatings] = useState({}) // { product_id: rating }
-  const [pendingFeedback, setPendingFeedback] = useState({}) // { product_id: text }
+  const [reviews, setReviews] = useState({})
+  const [pendingRatings, setPendingRatings] = useState({})
+  const [pendingFeedback, setPendingFeedback] = useState({})
   const [submitting, setSubmitting] = useState(false)
-  const [toast, setToast] = useState(null) // { type: 'success'|'error', message }
+  const [toast, setToast] = useState(null)
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   const showToast = (type, message) => {
     setToast({ type, message })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  const handleCancel = async () => {
+    setCancelling(true)
+    try {
+      const res = await authFetch(`http://127.0.0.1:8000/orders/${id}`, { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.detail)
+      setOrder(prev => ({ ...prev, status: 'cancelled' }))
+      setShowCancelConfirm(false)
+      showToast('success', 'Đã huỷ đơn hàng thành công')
+    } catch (err) {
+      showToast('error', err.message || 'Huỷ đơn thất bại')
+    } finally {
+      setCancelling(false)
+    }
   }
 
   useEffect(() => {
@@ -146,10 +164,44 @@ export default function OrderDetailPage() {
             <h2>Đơn hàng #{order._id.slice(-8).toUpperCase()}</h2>
             <p className="order-date">{date}</p>
           </div>
-          <span className="order-status-badge lg" style={{ background: s.color + '20', color: s.color }}>
-            {s.text}
-          </span>
+          <div className="order-header-right">
+            <span className="order-status-badge lg" style={{ background: s.color + '20', color: s.color }}>
+              {s.text}
+            </span>
+            {order.status === 'pending' && (
+              <button className="cancel-order-btn" onClick={() => setShowCancelConfirm(true)}>
+                Huỷ đơn hàng
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Confirm cancel modal */}
+        {showCancelConfirm && (
+          <div className="cancel-confirm-overlay" onClick={() => !cancelling && setShowCancelConfirm(false)}>
+            <div className="cancel-confirm-modal" onClick={e => e.stopPropagation()}>
+              <h3>Xác nhận huỷ đơn</h3>
+              <p>Bạn có chắc muốn huỷ đơn hàng <strong>#{order._id.slice(-8).toUpperCase()}</strong> không?</p>
+              <p className="cancel-confirm-note">Đơn hàng đã xác nhận hoặc đang giao không thể huỷ.</p>
+              <div className="cancel-confirm-actions">
+                <button
+                  className="cancel-confirm-no"
+                  onClick={() => setShowCancelConfirm(false)}
+                  disabled={cancelling}
+                >
+                  Không, giữ lại
+                </button>
+                <button
+                  className="cancel-confirm-yes"
+                  onClick={handleCancel}
+                  disabled={cancelling}
+                >
+                  {cancelling ? 'Đang huỷ...' : 'Xác nhận huỷ'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Timeline */}
         {!isCancelled && (
