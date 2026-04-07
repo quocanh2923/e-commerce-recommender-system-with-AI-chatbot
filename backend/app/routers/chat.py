@@ -34,49 +34,151 @@ class ChatResponse(BaseModel):
     products: Optional[list[dict]] = []
 
 
-# ── Helper: Tim san pham theo tu khoa hoac danh muc ──────────
-async def _search_products_for_context(query: str) -> list[dict]:
-    """
-    Tim toi da 5 san pham lien quan den query.
-    Dung regex search tren name va category.
-    """
-    if not query or len(query.strip()) < 2:
-        return []
+# ── Helper: Tim san pham theo ten va danh muc ─────────────────
+#
+# Categories THUC TE trong DB:
+#   Tops, Bottoms, Shoes, Bags, Accessories, Dresses,
+#   Watches, Underwear, Swimwear, Socks
+# Moi loai co keyword RIENG, KHONG gop chung.
 
+_VI_TO_EN_CAT: list[tuple[list[str], str]] = [
+    # Tops – chi ao mac tren nguoi
+    (["áo phông", "áo thun", "áo sơ mi", "áo linen", "áo hoodie",
+      "áo blazer", "áo tank", "áo khoác", "áo len", "áo công sở",
+      "áo nam", "áo nữ", "hoodie", "blouse", "tanktop", "sweater"], "Tops"),
+
+    # Bottoms – quan
+    (["quần jeans", "quần tây", "quần short", "quần thể thao",
+      "quần leggings", "quần jogger", "quần âu", "quần kaki",
+      "quần nam", "quần nữ",
+      "jeans", "leggings", "jogger", "trousers", "shorts"], "Bottoms"),
+
+    # Dresses – vay, dam (rieng, khong trung Tops)
+    (["váy", "đầm", "chân váy", "váy maxi", "váy công sở",
+      "váy hoa", "váy ngắn", "váy dài", "đầm dạ hội",
+      "đầm maxi", "đầm hoa", "đầm dự tiệc",
+      "dress", "skirt", "maxi dress"], "Dresses"),
+
+    # Shoes – giay, dep
+    (["giày", "dép", "sandal", "sneaker", "boot",
+      "giày thể thao", "giày cao gót", "giày tây", "giày sandal",
+      "giày nữ", "giày nam", "giày bệt", "giày lười",
+      "chelsea", "loafer", "heels", "giầy"], "Shoes"),
+
+    # Bags – tui, balo, vi
+    (["túi", "balo", "túi xách", "túi đeo vai", "túi đeo chéo",
+      "túi clutch", "túi tote", "ví", "bóp", "túi du lịch",
+      "bag", "backpack", "handbag", "tote", "clutch",
+      "fanny pack", "bucket bag", "wallet"], "Bags"),
+
+    # Watches – dong ho (RIENG, khong phai Accessories)
+    (["đồng hồ", "đồng hồ đeo tay", "đồng hồ nam", "đồng hồ nữ",
+      "đồng hồ thể thao", "đồng hồ đôi", "đồng hồ cơ",
+      "đồng hồ thông minh", "đồng hồ kỹ thuật số",
+      "smartwatch", "watch", "watches", "timepiece"], "Watches"),
+
+    # Accessories – phu kien nho (khan, kinh, that lung, kep toc...)
+    (["phụ kiện", "kẹp tóc", "thắt lưng", "băng đô", "khăn quàng",
+      "kính mắt", "kính râm", "mũ", "nón", "khăn",
+      "necklace", "bracelet", "belt", "claw", "headband",
+      "scarf", "sunglasses", "hat", "cap", "ring"], "Accessories"),
+
+    # Swimwear – do boi
+    (["đồ bơi", "áo tắm", "bikini", "đi biển", "tắm biển",
+      "bơi lội", "đồ tắm", "bộ bơi",
+      "swimwear", "swimsuit", "bikini set"], "Swimwear"),
+
+    # Socks – tat, vo
+    (["tất", "vớ", "tất chân", "vớ chân", "tất cao cổ",
+      "quần tất", "tất thể thao",
+      "socks", "stockings", "tights"], "Socks"),
+
+    # Underwear – do lot, do ngu
+    (["đồ lót", "đồ ngủ", "nội y", "quần lót", "áo ngực",
+      "pyjama", "bra",
+      "underwear", "lingerie", "bralette", "pyjamas"], "Underwear"),
+]
+
+
+def _word_match(keyword: str, text: str) -> bool:
+    """Kiem tra keyword co xuat hien trong text duoi dang tu doc lap.
+    Da tu: phrase match. Don tu: word boundary match.
+    """
+    if " " in keyword:
+        return keyword in text
+    # Boundary: khong lien ke voi chu cai tien Viet hoac Latin
+    boundary = r'(?<![^\s,\.!?;:()\-])'
+    return bool(re.search(boundary + re.escape(keyword) + r'(?![^\s,\.!?;:()\-])', text))
+
+
+async def _search_products(user_msg: str, ai_reply: str) -> list[dict]:
+    """
+    Tim san pham theo category va ten san pham.
+    Uu tien keyword trong user_msg hon ai_reply.
+    Fallback: san pham rating cao nhat.
+    """
+    user_lower = user_msg.lower().strip()
+    reply_lower = ai_reply.lower().strip()
     collection = db.get_db()["products"]
 
-    # Trich xuat tu khoa don gian (bo stopwords tieng Viet)
-    stopwords = {"cho", "toi", "ban", "co", "khong", "muon", "can", "tim", "mua", "gia"}
-    words = [w for w in re.split(r"\s+", query.strip().lower()) if w not in stopwords and len(w) > 1]
-    if not words:
-        return []
+    # 1. Tim category tu user_msg truoc
+    matched_categories: set[str] = set()
+    for keywords, cat in _VI_TO_EN_CAT:
+        if any(_word_match(kw, user_lower) for kw in keywords):
+            matched_categories.add(cat)
 
-    # Tao regex OR tu cac tu khoa
-    pattern = "|".join(re.escape(w) for w in words[:5])
+    # 2. Neu chua tim duoc thi moi xet ai_reply
+    if not matched_categories:
+        for keywords, cat in _VI_TO_EN_CAT:
+            if any(_word_match(kw, reply_lower) for kw in keywords):
+                matched_categories.add(cat)
 
+    # 3. Tim them tu tieng Anh thuan de match ten san pham
+    en_stopwords = {
+        "the", "and", "for", "with", "you", "can", "our", "are", "this",
+        "that", "have", "will", "your", "from", "they", "what", "when",
+        "how", "also", "some", "more", "very", "well", "not", "but",
+        "like", "than", "here", "just", "also",
+    }
+    combined_lower = f"{user_lower} {reply_lower}"
+    en_words = [
+        w.strip(".,!?:;\"'*()-")
+        for w in re.split(r"\s+", combined_lower)
+        if re.match(r'^[a-z]{4,}$', w.strip(".,!?:;\"'*()-"))
+        and w.strip(".,!?:;\"'*()-") not in en_stopwords
+    ]
+
+    # 4. Build MongoDB query
+    query_parts: list[dict] = []
+    if matched_categories:
+        query_parts.append({"category": {"$in": list(matched_categories)}})
+    if en_words:
+        words_sorted = sorted(set(en_words), key=len, reverse=True)[:5]
+        name_pattern = "|".join(re.escape(w) for w in words_sorted)
+        query_parts.append({"name": {"$regex": name_pattern, "$options": "i"}})
+
+    if query_parts:
+        cursor = collection.find(
+            {"$or": query_parts},
+            {"_id": 1, "name": 1, "price": 1, "category": 1, "image_url": 1, "rating": 1}
+        ).limit(4)
+        docs = await cursor.to_list(4)
+        if docs:
+            for d in docs:
+                d["_id"] = str(d["_id"])
+            return docs
+
+    # 5. Fallback: san pham duoc danh gia cao nhat
     cursor = collection.find(
-        {"$or": [
-            {"name": {"$regex": pattern, "$options": "i"}},
-            {"category": {"$regex": pattern, "$options": "i"}},
-            {"description": {"$regex": pattern, "$options": "i"}},
-        ]},
+        {},
         {"_id": 1, "name": 1, "price": 1, "category": 1, "image_url": 1, "rating": 1}
-    ).limit(5)
-
-    docs = await cursor.to_list(5)
+    ).sort("rating", -1).limit(4)
+    docs = await cursor.to_list(4)
     for d in docs:
         d["_id"] = str(d["_id"])
     return docs
 
 
-def _build_product_context(products: list[dict]) -> str:
-    if not products:
-        return ""
-    lines = ["San pham lien quan trong cua hang:"]
-    for p in products:
-        price_str = f"{p.get('price', 0):,.0f}".replace(",", ".") + " VND"
-        lines.append(f"- {p['name']} ({p.get('category', '')}) - {price_str}, danh gia: {p.get('rating', 0):.1f}/5")
-    return "\n".join(lines)
 
 
 # ── System prompt ─────────────────────────────────────────────
@@ -87,12 +189,13 @@ Nhiem vu cua ban:
 - Giai dap thac mac ve don hang, giao hang, doi tra hang
 - Goi y san pham phu hop voi nhu cau va ngan sach khach hang
 - Luon tra loi bang tieng Viet, than thien va chuyen nghiep
-- Neu co san pham lien quan duoc cung cap, hay de cap den chung cu the
 
 Quy tac:
 - Khong phat ngon ve chinh tri, ton giao
 - Neu khach hoi gia, hay goi y kiem tra tren trang san pham
-- Tra loi ngan gon, ro rang, toi da 3-4 cau tru khi duoc yeu cau chi tiet"""
+- Tra loi ngan gon, ro rang, toi da 3-4 cau
+- Chi goi y dung loai san pham khach dang hoi, KHONG goi y san pham khac loai
+- Vi du: khach hoi ao thi chi goi y ao, khach hoi khan thi chi goi y khan"""
 
 
 # ── Fallback khi Gemini khong kha dung ───────────────────────
@@ -143,21 +246,14 @@ async def chat(request: ChatRequest):
     if not groq_key and not gemini_key:
         raise HTTPException(status_code=503, detail="Chua cau hinh API key (GROQ_API_KEY hoac GEMINI_API_KEY)")
 
-    # Tim san pham lien quan
-    related_products = await _search_products_for_context(request.message)
-    product_context = _build_product_context(related_products)
-
-    # Ghep context san pham vao message neu co
-    user_content = request.message
-    if product_context:
-        user_content = f"{request.message}\n\n[Context]\n{product_context}"
-
-    # Xay dung lich su hoi thoai (OpenAI-compatible format dung cho Groq)
+    # Xay dung lich su hoi thoai (KHONG inject san pham vao prompt)
     groq_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for msg in (request.history or []):
         role = "user" if msg.role == "user" else "assistant"
         groq_messages.append({"role": role, "content": msg.content})
-    groq_messages.append({"role": "user", "content": user_content})
+    groq_messages.append({"role": "user", "content": request.message})
+
+    reply_text = None
 
     # ── Thu Groq truoc (primary) ──
     if groq_key:
@@ -170,13 +266,11 @@ async def chat(request: ChatRequest):
                 temperature=0.7,
             )
             reply_text = completion.choices[0].message.content or "Xin loi, toi khong the tra loi."
-            return ChatResponse(reply=reply_text, products=related_products)
         except Exception:
-            # Bat ky loi nao (rate limit, invalid key, timeout...) -> thu Gemini
             pass
 
     # ── Thu Gemini thu hai (secondary) ──
-    if gemini_key:
+    if reply_text is None and gemini_key:
         try:
             from google import genai as gai
             from google.genai import types as gtypes
@@ -188,7 +282,7 @@ async def chat(request: ChatRequest):
                     gtypes.Content(role=role, parts=[gtypes.Part(text=msg.content)])
                 )
             contents = history_contents + [
-                gtypes.Content(role="user", parts=[gtypes.Part(text=user_content)])
+                gtypes.Content(role="user", parts=[gtypes.Part(text=request.message)])
             ]
             response = gclient.models.generate_content(
                 model="gemini-2.0-flash",
@@ -200,10 +294,31 @@ async def chat(request: ChatRequest):
                 )
             )
             reply_text = response.text or "Xin loi, toi khong the tra loi."
-            return ChatResponse(reply=reply_text, products=related_products)
         except Exception:
-            pass  # Gemini that bai -> dung fallback
+            pass
 
     # ── Rule-based fallback cuoi cung ──
-    fallback = _fallback_response(request.message)
-    return ChatResponse(reply=fallback, products=related_products)
+    if reply_text is None:
+        reply_text = _fallback_response(request.message)
+
+    # Tim san pham dua tren user message VA AI reply
+    related_products = await _search_products(request.message, reply_text)
+    return ChatResponse(reply=reply_text, products=related_products)
+
+
+@router.get("/debug-search")
+async def debug_search(msg: str = "", reply: str = ""):
+    """Endpoint debug: test _search_products truc tiep."""
+    combined = f"{msg} {reply}".lower().strip()
+    matched_cats = set()
+    for keywords, en_cat in _VI_TO_EN_CAT:
+        for kw in keywords:
+            if _word_match(kw, combined):
+                matched_cats.add(en_cat)
+                break
+    products = await _search_products(msg, reply)
+    return {
+        "combined_preview": combined[:300],
+        "matched_categories": list(matched_cats),
+        "products": [{"name": p["name"], "category": p["category"]} for p in products],
+    }

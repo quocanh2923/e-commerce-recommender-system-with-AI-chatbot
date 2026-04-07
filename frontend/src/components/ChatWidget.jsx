@@ -123,6 +123,7 @@ export default function ChatWidget() {
                           key={p._id}
                           className="chat-product-card"
                           onClick={() => { navigate(`/products/${p._id}`); setOpen(false) }}
+                          title="Click to view product"
                         >
                           {p.image_url && (
                             <img
@@ -136,6 +137,7 @@ export default function ChatWidget() {
                             <p className="chat-product-name">{p.name}</p>
                             <p className="chat-product-price">{p.price?.toLocaleString('vi-VN')}đ</p>
                           </div>
+                          <span className="chat-product-arrow">→</span>
                         </div>
                       ))}
                     </div>

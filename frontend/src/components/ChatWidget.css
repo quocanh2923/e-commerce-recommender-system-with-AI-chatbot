@@ -210,11 +210,24 @@
   border-radius: 8px;
   padding: 0.4rem 0.6rem;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background 0.15s, border-color 0.15s;
+  text-decoration: none;
 }
 
 .chat-product-card:hover {
   background: #f5f3ff;
+  border-color: #a78bfa;
+}
+
+.chat-product-card:hover .chat-product-arrow {
+  transform: translateX(3px);
+}
+
+.chat-product-arrow {
+  font-size: 0.9rem;
+  color: #7c3aed;
+  flex-shrink: 0;
+  transition: transform 0.15s;
 }
 
 .chat-product-img {
