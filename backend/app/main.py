@@ -13,6 +13,7 @@ from app.routers import recommend
 from app.routers import chat
 from app.routers import admin
 from app.routers import notification
+from app.routers import paypal
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,6 +44,7 @@ app.include_router(recommend.router, prefix="/recommend", tags=["recommend"])
 app.include_router(chat.router, prefix="/chat", tags=["chat"])
 app.include_router(admin.router, prefix="/admin", tags=["admin"])
 app.include_router(notification.router, prefix="/notifications", tags=["notifications"])
+app.include_router(paypal.router, prefix="/paypal", tags=["paypal"])
 
 # Serve uploaded images
 _upload_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")

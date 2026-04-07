@@ -277,6 +277,26 @@
   flex: 1;
 }
 
+.paypal-wrapper {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ede9fe;
+}
+
+.paypal-error {
+  color: #ef4444;
+  font-size: 0.875rem;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.paypal-processing {
+  color: #6366f1;
+  font-size: 0.875rem;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
 .success-address {
   margin-top: 8px !important;
   font-size: 0.92rem;

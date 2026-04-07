@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
 import './CartPage.css'
 
 const SHIPPING = 30000
@@ -13,6 +14,8 @@ export default function CartPage() {
   const [ordering, setOrdering] = useState(false)
   const [orderDone, setOrderDone] = useState(null)
   const [showAddressForm, setShowAddressForm] = useState(false)
+  const [showPaypal, setShowPaypal] = useState(false)
+  const [paypalError, setPaypalError] = useState('')
 
   const [address, setAddress] = useState({
     full_name: '',
@@ -46,27 +49,48 @@ export default function CartPage() {
   const handleCheckoutClick = () => {
     setAddressErr({})
     setShowAddressForm(true)
+    setShowPaypal(false)
+    setPaypalError('')
   }
 
-  const handleCheckout = async () => {
+  const handleProceedToPayment = () => {
     const errs = validateAddress()
     if (Object.keys(errs).length > 0) {
       setAddressErr(errs)
       return
     }
+    setShowPaypal(true)
+    setPaypalError('')
+  }
+
+  // Tạo PayPal order (gọi backend)
+  const handleCreatePaypalOrder = async () => {
+    const res = await authFetch('http://127.0.0.1:8000/paypal/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ shipping_address: address }),
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.detail || 'Failed to create PayPal order')
+    return data.paypal_order_id
+  }
+
+  // Khi user đã approve trên PayPal popup → capture
+  const handleApprovePaypal = async (paypalOrderId) => {
     setOrdering(true)
+    setPaypalError('')
     try {
-      const res = await authFetch('http://127.0.0.1:8000/orders/', {
+      const res = await authFetch('http://127.0.0.1:8000/paypal/capture-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shipping_address: address }),
+        body: JSON.stringify({ paypal_order_id: paypalOrderId, shipping_address: address }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.detail)
+      if (!res.ok) throw new Error(data.detail || 'Capture failed')
       await fetchCart()
       setOrderDone(data)
     } catch (err) {
-      alert('Order failed: ' + err.message)
+      setPaypalError('Payment failed: ' + err.message)
     } finally {
       setOrdering(false)
     }
@@ -202,19 +226,41 @@ export default function CartPage() {
               <div className="shipping-actions">
                 <button
                   className="btn-secondary"
-                  onClick={() => setShowAddressForm(false)}
+                  onClick={() => { setShowAddressForm(false); setShowPaypal(false) }}
                   disabled={ordering}
                 >
                   Back
                 </button>
-                <button
-                  className="btn-checkout"
-                  onClick={handleCheckout}
-                  disabled={ordering}
-                >
-                  {ordering ? 'Processing...' : 'Place Order'}
-                </button>
+                {!showPaypal ? (
+                  <button
+                    className="btn-checkout"
+                    onClick={handleProceedToPayment}
+                    disabled={ordering}
+                  >
+                    Continue to Payment
+                  </button>
+                ) : null}
               </div>
+
+              {showPaypal && (
+                <div className="paypal-wrapper">
+                  {paypalError && <p className="paypal-error">{paypalError}</p>}
+                  {ordering && <p className="paypal-processing">Processing payment...</p>}
+                  <PayPalScriptProvider options={{
+                    'client-id': import.meta.env.VITE_PAYPAL_CLIENT_ID,
+                    currency: 'USD',
+                  }}>
+                    <PayPalButtons
+                      style={{ layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' }}
+                      disabled={ordering}
+                      createOrder={handleCreatePaypalOrder}
+                      onApprove={(data) => handleApprovePaypal(data.orderID)}
+                      onError={(err) => setPaypalError('PayPal error: ' + err)}
+                      onCancel={() => setPaypalError('Payment cancelled.')}
+                    />
+                  </PayPalScriptProvider>
+                </div>
+              )}
             </div>
           )}
         </div>
