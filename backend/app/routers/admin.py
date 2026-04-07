@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query, Body, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Depends, Query, Body, UploadFile, File, BackgroundTasks
 from typing import List, Optional
 from bson import ObjectId
 from datetime import datetime, timezone, timedelta
@@ -7,6 +7,7 @@ from app.core.config import db
 from app.core.dependencies import get_current_admin
 from app.models.product import Product
 from app.routers.notification import create_notification
+from app.core.email import send_email, build_status_update_email
 
 router = APIRouter()
 
@@ -222,6 +223,7 @@ async def admin_list_orders(
 @router.put("/orders/{order_id}/status")
 async def admin_update_order_status(
     order_id: str,
+    background_tasks: BackgroundTasks,
     body: dict = Body(...),
     admin=Depends(get_current_admin),
 ):
@@ -260,6 +262,16 @@ async def admin_update_order_status(
         link=f"/orders/{updated['_id']}",
         target="user",
     )
+
+    # Gui email thong bao thay doi trang thai
+    user_doc = await db_["users"].find_one({"_id": ObjectId(updated["user_id"])})
+    if user_doc and user_doc.get("email"):
+        background_tasks.add_task(
+            send_email,
+            to=user_doc["email"],
+            subject=f"Order #{order_code} — {status_text.get(new_status, new_status)} — ShopAI",
+            html=build_status_update_email(updated, user_doc.get("username", ""), new_status),
+        )
 
     return updated
 

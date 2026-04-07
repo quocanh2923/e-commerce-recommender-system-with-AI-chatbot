@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Body
+from fastapi import APIRouter, HTTPException, status, Depends, Body, BackgroundTasks
 from typing import List
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -6,13 +6,14 @@ from app.models.order import Order, OrderItem, OrderCreate
 from app.core.config import db
 from app.core.dependencies import get_current_user
 from app.routers.notification import create_notification
+from app.core.email import send_email, build_order_confirmation_email
 
 router = APIRouter()
 
 
 # 1. Tạo đơn hàng từ giỏ hàng hiện tại
 @router.post("/", response_model=Order, status_code=status.HTTP_201_CREATED)
-async def create_order(order_data: OrderCreate = Body(...), current_user: dict = Depends(get_current_user)):
+async def create_order(background_tasks: BackgroundTasks, order_data: OrderCreate = Body(...), current_user: dict = Depends(get_current_user)):
     user_id = current_user["_id"]
 
     cart = await db.get_db()["carts"].find_one({"user_id": user_id})
@@ -93,6 +94,16 @@ async def create_order(order_data: OrderCreate = Body(...), current_user: dict =
         ntype="order",
         link=f"/orders/{created['_id']}",
     )
+
+    # Gui email xac nhan dat hang
+    user_email = current_user.get("email", "")
+    if user_email:
+        background_tasks.add_task(
+            send_email,
+            to=user_email,
+            subject=f"Order Confirmed #{order_code} — ShopAI",
+            html=build_order_confirmation_email(created, current_user.get("username", "")),
+        )
 
     return created
 
