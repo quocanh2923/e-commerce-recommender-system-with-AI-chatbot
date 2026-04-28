@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import API_URL from '../config'
 import './AuthPages.css'
 
 export default function RegisterPage() {
@@ -14,7 +15,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/users/register', {
+      const res = await fetch(`${API_URL}/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

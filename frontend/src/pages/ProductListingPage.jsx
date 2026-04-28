@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import API_URL from '../config'
 import './ProductListingPage.css'
-
-const API_URL = 'http://127.0.0.1:8000'
 
 const CATEGORIES = ['Tops', 'Bottoms', 'Shoes', 'Bags', 'Accessories', 'Dresses', 'Watches', 'Underwear', 'Swimwear', 'Socks']
 const SORT_OPTIONS = [

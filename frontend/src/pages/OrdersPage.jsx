@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import './OrdersPage.css'
 
 const STATUS_LABEL = {
@@ -19,7 +20,7 @@ export default function OrdersPage() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    authFetch('http://127.0.0.1:8000/orders/')
+    authFetch(`${API_URL}/orders/`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()

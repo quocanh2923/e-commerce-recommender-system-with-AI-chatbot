@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js'
 import './CartPage.css'
 
@@ -65,7 +66,7 @@ export default function CartPage() {
 
   // Tạo PayPal order (gọi backend)
   const handleCreatePaypalOrder = async () => {
-    const res = await authFetch('http://127.0.0.1:8000/paypal/create-order', {
+    const res = await authFetch(`${API_URL}/paypal/create-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ shipping_address: address }),
@@ -80,7 +81,7 @@ export default function CartPage() {
     setOrdering(true)
     setPaypalError('')
     try {
-      const res = await authFetch('http://127.0.0.1:8000/paypal/capture-order', {
+      const res = await authFetch(`${API_URL}/paypal/capture-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ paypal_order_id: paypalOrderId, shipping_address: address }),

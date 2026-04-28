@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import API_URL from '../../config'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -28,10 +29,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const fetchStats = authFetch('http://127.0.0.1:8000/admin/stats')
+    const fetchStats = authFetch(`${API_URL}/admin/stats`)
       .then(r => r.json())
       .catch(() => null)
-    const fetchCharts = authFetch('http://127.0.0.1:8000/admin/chart-data')
+    const fetchCharts = authFetch(`${API_URL}/admin/chart-data`)
       .then(r => r.ok ? r.json() : null)
       .catch(() => null)
     Promise.all([fetchStats, fetchCharts]).then(([statsData, charts]) => {

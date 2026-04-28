@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import './AuthPages.css'
 
 export default function LoginPage() {
@@ -16,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/users/login', {
+      const res = await fetch(`${API_URL}/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),

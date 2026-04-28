@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import API_URL from '../../config'
 
 export default function AdminUsers() {
   const { authFetch } = useAuth()
@@ -13,7 +14,7 @@ export default function AdminUsers() {
   const fetchUsers = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({ page, limit: 20, ...(search ? { search } : {}) })
-    const res = await authFetch(`http://127.0.0.1:8000/admin/users?${params}`)
+    const res = await authFetch(`${API_URL}/admin/users?${params}`)
     if (res.ok) setData(await res.json())
     setLoading(false)
   }, [page, search])
@@ -28,7 +29,7 @@ export default function AdminUsers() {
 
   const handleToggleBlock = async (userId, currentBlocked) => {
     setToggling(userId)
-    const res = await authFetch(`http://127.0.0.1:8000/admin/users/${userId}/block`, {
+    const res = await authFetch(`${API_URL}/admin/users/${userId}/block`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ is_blocked: !currentBlocked }),

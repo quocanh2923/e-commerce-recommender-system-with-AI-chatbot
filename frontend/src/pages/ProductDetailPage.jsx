@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
+import API_URL from '../config'
 import RecommendSection from '../components/RecommendSection'
 import './ProductDetailPage.css'
 
@@ -18,7 +19,7 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     setLoading(true)
-    fetch(`http://127.0.0.1:8000/products/${id}`)
+    fetch(`${API_URL}/products/${id}`)
       .then(res => {
         if (!res.ok) throw new Error('Product not found')
         return res.json()
@@ -30,7 +31,7 @@ export default function ProductDetailPage() {
   // Ghi interaction "view"
   useEffect(() => {
     if (!product || !user || !token) return
-    fetch(`http://127.0.0.1:8000/interactions/?product_id=${product._id}&action_type=view`, {
+    fetch(`${API_URL}/interactions/?product_id=${product._id}&action_type=view`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {})

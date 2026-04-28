@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import './NotificationBell.css'
 
 export default function NotificationBell({ isAdmin = false }) {
@@ -11,8 +12,8 @@ export default function NotificationBell({ isAdmin = false }) {
   const ref = useRef()
 
   const apiBase = isAdmin
-    ? 'http://127.0.0.1:8000/notifications/admin?limit=15'
-    : 'http://127.0.0.1:8000/notifications/?limit=15'
+    ? `${API_URL}/notifications/admin?limit=15`
+    : `${API_URL}/notifications/?limit=15`
 
   const fetchNotifications = async () => {
     if (!user) return
@@ -40,7 +41,7 @@ export default function NotificationBell({ isAdmin = false }) {
   }
 
   const handleMarkAllRead = async () => {
-    await authFetch('http://127.0.0.1:8000/notifications/read-all', { method: 'PUT' })
+    await authFetch(`${API_URL}/notifications/read-all`, { method: 'PUT' })
     setData(prev => ({
       ...prev,
       unread: 0,
@@ -50,7 +51,7 @@ export default function NotificationBell({ isAdmin = false }) {
 
   const handleClick = async (noti) => {
     if (!noti.is_read) {
-      await authFetch(`http://127.0.0.1:8000/notifications/${noti._id}/read`, { method: 'PUT' })
+      await authFetch(`${API_URL}/notifications/${noti._id}/read`, { method: 'PUT' })
       setData(prev => ({
         ...prev,
         unread: Math.max(0, prev.unread - 1),

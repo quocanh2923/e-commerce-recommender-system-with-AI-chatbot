@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
+import API_URL from '../config'
 import './RecommendSection.css'
-
-const API_URL = 'http://127.0.0.1:8000'
 
 function StarRating({ rating = 0 }) {
   return (

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import API_URL from '../../config'
 
 const EMPTY_FORM = { name: '', price: '', category: '', description: '', image_url: '', stock: '' }
 
@@ -23,7 +24,7 @@ export default function AdminProducts() {
     const formData = new FormData()
     formData.append('file', file)
     try {
-      const res = await authFetch('http://127.0.0.1:8000/admin/upload-image', {
+      const res = await authFetch(`${API_URL}/admin/upload-image`, {
         method: 'POST',
         body: formData,
       })
@@ -43,7 +44,7 @@ export default function AdminProducts() {
   const fetchProducts = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({ page, limit: 20, ...(search ? { search } : {}) })
-    const res = await authFetch(`http://127.0.0.1:8000/admin/products?${params}`)
+    const res = await authFetch(`${API_URL}/admin/products?${params}`)
     if (res.ok) setData(await res.json())
     setLoading(false)
   }, [page, search])
@@ -61,7 +62,7 @@ export default function AdminProducts() {
     if (!form.name || !form.price || !form.category) return alert('Please fill in Name, Price, and Category')
     setSaving(true)
     const payload = { name: form.name, price: Number(form.price), category: form.category, description: form.description, image_url: form.image_url, stock: Number(form.stock) || 0 }
-    const url    = modal === 'edit' ? `http://127.0.0.1:8000/admin/products/${editProduct._id}` : 'http://127.0.0.1:8000/admin/products'
+    const url    = modal === 'edit' ? `${API_URL}/admin/products/${editProduct._id}` : `${API_URL}/admin/products`
     const method = modal === 'edit' ? 'PUT' : 'POST'
     const res = await authFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
     if (res.ok) { setModal(null); fetchProducts() }
@@ -71,7 +72,7 @@ export default function AdminProducts() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Xoá sản phẩm này?')) return
-    const res = await authFetch(`http://127.0.0.1:8000/admin/products/${id}`, { method: 'DELETE' })
+    const res = await authFetch(`${API_URL}/admin/products/${id}`, { method: 'DELETE' })
     if (res.ok || res.status === 204) fetchProducts()
     else alert('Xoá thất bại')
   }

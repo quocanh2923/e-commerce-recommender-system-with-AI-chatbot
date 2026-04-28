@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import './ProfilePage.css'
 
 export default function ProfilePage() {
@@ -26,7 +27,7 @@ export default function ProfilePage() {
     setProfileLoading(true)
     setProfileMsg(null)
     try {
-      const res = await authFetch('http://127.0.0.1:8000/users/me', {
+      const res = await authFetch(`${API_URL}/users/me`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profileForm),
@@ -59,7 +60,7 @@ export default function ProfilePage() {
     }
     setPwLoading(true)
     try {
-      const res = await authFetch('http://127.0.0.1:8000/users/me/password', {
+      const res = await authFetch(`${API_URL}/users/me/password`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

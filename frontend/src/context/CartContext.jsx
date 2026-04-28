@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from './AuthContext'
+import API_URL from '../config'
 
 const CartContext = createContext(null)
 
@@ -20,7 +21,7 @@ export function CartProvider({ children }) {
     if (!token) { setCart({ items: [] }); return }
     setLoading(true)
     try {
-      const res = await authFetch('http://127.0.0.1:8000/cart/')
+      const res = await authFetch(`${API_URL}/cart/`)
       if (res.ok) setCart(await res.json())
     } finally {
       setLoading(false)
@@ -32,7 +33,7 @@ export function CartProvider({ children }) {
 
   const addToCart = async (product) => {
     if (!token) return false
-    const res = await authFetch('http://127.0.0.1:8000/cart/items', {
+    const res = await authFetch(`${API_URL}/cart/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -53,14 +54,14 @@ export function CartProvider({ children }) {
 
   const updateQuantity = async (productId, quantity) => {
     const res = await authFetch(
-      `http://127.0.0.1:8000/cart/items/${productId}?quantity=${quantity}`,
+      `${API_URL}/cart/items/${productId}?quantity=${quantity}`,
       { method: 'PUT' }
     )
     if (res.ok) setCart(await res.json())
   }
 
   const removeItem = async (productId) => {
-    const res = await authFetch(`http://127.0.0.1:8000/cart/items/${productId}`, {
+    const res = await authFetch(`${API_URL}/cart/items/${productId}`, {
       method: 'DELETE',
     })
     if (res.ok) setCart(await res.json())

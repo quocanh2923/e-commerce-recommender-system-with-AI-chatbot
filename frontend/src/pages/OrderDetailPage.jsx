@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import './OrdersPage.css'
 
 const STEPS = [
@@ -61,7 +62,7 @@ export default function OrderDetailPage() {
   const handleCancel = async () => {
     setCancelling(true)
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/orders/${id}`, { method: 'DELETE' })
+      const res = await authFetch(`${API_URL}/orders/${id}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.detail)
       setOrder(prev => ({ ...prev, status: 'cancelled' }))
@@ -75,7 +76,7 @@ export default function OrderDetailPage() {
   }
 
   useEffect(() => {
-    authFetch(`http://127.0.0.1:8000/orders/${id}`)
+    authFetch(`${API_URL}/orders/${id}`)
       .then(res => {
         if (!res.ok) throw new Error('Order not found')
         return res.json()
@@ -87,7 +88,7 @@ export default function OrderDetailPage() {
   // Fetch existing reviews for this order
   useEffect(() => {
     if (!order || order.status !== 'delivered') return
-    authFetch(`http://127.0.0.1:8000/products/reviews/${id}`)
+    authFetch(`${API_URL}/products/reviews/${id}`)
       .then(res => res.ok ? res.json() : {})
       .then(data => setReviews(data))
       .catch(() => {})
@@ -101,7 +102,7 @@ export default function OrderDetailPage() {
     let fail = 0
     for (const [productId, rating] of entries) {
       try {
-        const res = await authFetch(`http://127.0.0.1:8000/products/${productId}/rate`, {
+        const res = await authFetch(`${API_URL}/products/${productId}/rate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -124,7 +125,7 @@ export default function OrderDetailPage() {
     // Gửi 1 thông báo gộp cho admin
     if (success > 0) {
       try {
-        await authFetch('http://127.0.0.1:8000/products/reviews/notify', {
+        await authFetch(`${API_URL}/products/reviews/notify`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ order_id: id, count: success }),

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import API_URL from '../config'
 import RecommendSection from '../components/RecommendSection'
 import '../App.css'
 
@@ -12,7 +13,7 @@ export default function HomePage() {
   const { user, token } = useAuth()
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/products/?limit=8&sort_by=newest')
+    fetch(`${API_URL}/products/?limit=8&sort_by=newest`)
       .then(res => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         return res.json()

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import API_URL from '../../config'
 import { useSearchParams } from 'react-router-dom'
 
 const STATUS_OPTIONS = [
@@ -25,7 +26,7 @@ export default function AdminOrders() {
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     const params = new URLSearchParams({ page, limit: 20, ...(statusFilter ? { status: statusFilter } : {}) })
-    const res = await authFetch(`http://127.0.0.1:8000/admin/orders?${params}`)
+    const res = await authFetch(`${API_URL}/admin/orders?${params}`)
     if (res.ok) setData(await res.json())
     setLoading(false)
   }, [page, statusFilter])
@@ -47,7 +48,7 @@ export default function AdminOrders() {
   const openDetail = async (order) => {
     setDetail(order)
     try {
-      const res = await authFetch(`http://127.0.0.1:8000/admin/orders/${order._id}/reviews`)
+      const res = await authFetch(`${API_URL}/admin/orders/${order._id}/reviews`)
       if (res.ok) setDetailReviews(await res.json())
       else setDetailReviews({})
     } catch { setDetailReviews({}) }
@@ -55,7 +56,7 @@ export default function AdminOrders() {
 
   const handleStatusChange = async (orderId, newStatus) => {
     setUpdating(orderId)
-    const res = await authFetch(`http://127.0.0.1:8000/admin/orders/${orderId}/status`, {
+    const res = await authFetch(`${API_URL}/admin/orders/${orderId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
