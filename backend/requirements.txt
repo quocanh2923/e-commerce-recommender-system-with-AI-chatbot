@@ -17,3 +17,4 @@ numpy==1.25.2
 groq==0.4.1
 google-generativeai==0.3.0
 requests==2.31.0
+gunicorn==21.2.0
