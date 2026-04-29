@@ -48,6 +48,34 @@ async def _get_access_token() -> str:
     return resp.json()["access_token"]
 
 
+async def refund_paypal_capture(capture_id: str) -> dict:
+    """
+    Hoàn tiền toàn bộ một capture trên PayPal.
+    Trả về dict response từ PayPal (chứa id, status, ...).
+    """
+    if not capture_id:
+        raise HTTPException(status_code=400, detail="Thiếu paypal_capture_id")
+
+    token = await _get_access_token()
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            f"{PAYPAL_BASE}/v2/payments/captures/{capture_id}/refund",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            timeout=15,
+        )
+
+    if resp.status_code not in (200, 201):
+        raise HTTPException(status_code=502, detail=f"PayPal refund failed: {resp.text}")
+
+    data = resp.json()
+    if data.get("status") not in ("COMPLETED", "PENDING"):
+        raise HTTPException(status_code=502, detail=f"PayPal refund status: {data.get('status')}")
+    return data
+
+
 # ─────────────────────────────────────────────────────────────
 # 1. Tạo PayPal order
 # ─────────────────────────────────────────────────────────────

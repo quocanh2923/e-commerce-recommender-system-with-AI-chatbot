@@ -6,6 +6,7 @@ from app.models.order import Order, OrderItem, OrderCreate
 from app.core.config import db
 from app.core.dependencies import get_current_user
 from app.routers.notification import create_notification
+from app.routers.paypal import refund_paypal_capture
 from app.core.email import send_email, build_order_confirmation_email
 
 router = APIRouter()
@@ -155,9 +156,22 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
     if order["status"] != "pending":
         raise HTTPException(status_code=400, detail="Chỉ có thể huỷ đơn hàng đang chờ xác nhận")
 
+    # Nếu đơn thanh toán bằng PayPal → hoàn tiền trước, rồi mới đổi trạng thái
+    refunded = False
+    refund_info = None
+    if order.get("payment_method") == "paypal" and order.get("paypal_capture_id"):
+        refund_info = await refund_paypal_capture(order["paypal_capture_id"])
+        refunded = True
+
+    update_fields = {"status": "cancelled", "cancelled_at": datetime.now(timezone.utc)}
+    if refunded:
+        update_fields["payment_status"] = "refunded"
+        update_fields["paypal_refund_id"] = refund_info.get("id")
+        update_fields["refunded_at"] = datetime.now(timezone.utc)
+
     await db.get_db()["orders"].update_one(
         {"_id": oid},
-        {"$set": {"status": "cancelled"}}
+        {"$set": update_fields}
     )
 
     # Hoàn lại stock
@@ -169,15 +183,36 @@ async def cancel_order(order_id: str, current_user: dict = Depends(get_current_u
 
     # Thông báo cho admin
     order_code = order_id[-8:].upper()
+    admin_msg = (
+        f"Đơn hàng #{order_code} đã bị khách huỷ và được hoàn tiền qua PayPal"
+        if refunded else
+        f"Đơn hàng #{order_code} đã bị khách huỷ"
+    )
     admins = await db.get_db()["users"].find({"role": "admin"}).to_list(None)
     for adm in admins:
         await create_notification(
             user_id=str(adm["_id"]),
             title="Đơn hàng bị huỷ",
-            message=f"Đơn hàng #{order_code} đã bị khách huỷ",
+            message=admin_msg,
             ntype="order",
             link="/admin/orders",
             target="admin",
         )
 
-    return {"message": "Đã huỷ đơn hàng thành công"}
+    # Thông báo cho user nếu đã hoàn tiền
+    if refunded:
+        await create_notification(
+            user_id=current_user["_id"],
+            title="Hoàn tiền PayPal",
+            message=f"Đơn hàng #{order_code} đã được hoàn tiền về tài khoản PayPal của bạn.",
+            ntype="order",
+            link=f"/orders/{order_id}",
+        )
+
+    return {
+        "message": "Đã huỷ đơn hàng thành công" + (" và hoàn tiền qua PayPal" if refunded else ""),
+        "refunded": refunded,
+        "paypal_refund_id": refund_info.get("id") if refund_info else None,
+    }
+
+
