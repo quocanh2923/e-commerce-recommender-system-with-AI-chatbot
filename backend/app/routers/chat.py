@@ -7,6 +7,7 @@ POST /chat/  - AI Chatbot
 
 import os
 import asyncio
+import logging
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
@@ -14,6 +15,8 @@ import re
 from groq import AsyncGroq
 
 from app.core.config import db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -36,67 +39,73 @@ class ChatResponse(BaseModel):
 
 # ── Helper: Tim san pham theo ten va danh muc ─────────────────
 #
-# Categories THUC TE trong DB:
-#   Tops, Bottoms, Shoes, Bags, Accessories, Dresses,
-#   Watches, Underwear, Swimwear, Socks
-# Moi loai co keyword RIENG, KHONG gop chung.
+# Categories trong DB:
+#   - H&M-derived (300sp): tieng Viet (Áo, Quần, Giày, Phụ kiện,
+#     Đồ lót, Đồ bơi, Vớ - xem CATEGORY_MAP trong seed.py)
+#   - Extras (25sp): tieng Anh (Bags, Watches, Dresses, Bottoms, Shoes)
+# Moi keyword cluster trả về CA HAI dang để query khớp được cả hai.
 
-_VI_TO_EN_CAT: list[tuple[list[str], str]] = [
+_VI_TO_EN_CAT: list[tuple[list[str], list[str]]] = [
     # Tops – chi ao mac tren nguoi
     (["áo phông", "áo thun", "áo sơ mi", "áo linen", "áo hoodie",
       "áo blazer", "áo tank", "áo khoác", "áo len", "áo công sở",
-      "áo nam", "áo nữ", "hoodie", "blouse", "tanktop", "sweater"], "Tops"),
+      "áo nam", "áo nữ", "hoodie", "blouse", "tanktop", "sweater"],
+     ["Áo", "Tops"]),
 
     # Bottoms – quan
     (["quần jeans", "quần tây", "quần short", "quần thể thao",
       "quần leggings", "quần jogger", "quần âu", "quần kaki",
       "quần nam", "quần nữ",
-      "jeans", "leggings", "jogger", "trousers", "shorts"], "Bottoms"),
+      "jeans", "leggings", "jogger", "trousers", "shorts"],
+     ["Quần", "Bottoms"]),
 
     # Dresses – vay, dam (rieng, khong trung Tops)
     (["váy", "đầm", "chân váy", "váy maxi", "váy công sở",
       "váy hoa", "váy ngắn", "váy dài", "đầm dạ hội",
       "đầm maxi", "đầm hoa", "đầm dự tiệc",
-      "dress", "skirt", "maxi dress"], "Dresses"),
+      "dress", "skirt", "maxi dress"],
+     ["Váy", "Dresses"]),
 
     # Shoes – giay, dep
     (["giày", "dép", "sandal", "sneaker", "boot",
       "giày thể thao", "giày cao gót", "giày tây", "giày sandal",
       "giày nữ", "giày nam", "giày bệt", "giày lười",
-      "chelsea", "loafer", "heels", "giầy"], "Shoes"),
+      "chelsea", "loafer", "heels", "giầy"],
+     ["Giày", "Shoes"]),
 
     # Bags – tui, balo, vi
     (["túi", "balo", "túi xách", "túi đeo vai", "túi đeo chéo",
       "túi clutch", "túi tote", "ví", "bóp", "túi du lịch",
       "bag", "backpack", "handbag", "tote", "clutch",
-      "fanny pack", "bucket bag", "wallet"], "Bags"),
+      "fanny pack", "bucket bag", "wallet"],
+     ["Túi", "Bags"]),
 
-    # Watches – dong ho (RIENG, khong phai Accessories)
-    (["đồng hồ", "đồng hồ đeo tay", "đồng hồ nam", "đồng hồ nữ",
-      "đồng hồ thể thao", "đồng hồ đôi", "đồng hồ cơ",
-      "đồng hồ thông minh", "đồng hồ kỹ thuật số",
-      "smartwatch", "watch", "watches", "timepiece"], "Watches"),
-
-    # Accessories – phu kien nho (khan, kinh, that lung, kep toc...)
+    # Accessories – phu kien (bao gom dong ho, vong, vi, that lung, mu, kinh,
+    # khan, kep toc...) - H&M dataset khong co category Watches rieng
     (["phụ kiện", "kẹp tóc", "thắt lưng", "băng đô", "khăn quàng",
       "kính mắt", "kính râm", "mũ", "nón", "khăn",
+      "đồng hồ", "smartwatch", "watch", "watches",
       "necklace", "bracelet", "belt", "claw", "headband",
-      "scarf", "sunglasses", "hat", "cap", "ring"], "Accessories"),
+      "scarf", "sunglasses", "hat", "cap", "ring"],
+     ["Phụ kiện", "Accessories"]),
 
     # Swimwear – do boi
     (["đồ bơi", "áo tắm", "bikini", "đi biển", "tắm biển",
       "bơi lội", "đồ tắm", "bộ bơi",
-      "swimwear", "swimsuit", "bikini set"], "Swimwear"),
+      "swimwear", "swimsuit", "bikini set"],
+     ["Đồ bơi", "Swimwear"]),
 
     # Socks – tat, vo
     (["tất", "vớ", "tất chân", "vớ chân", "tất cao cổ",
       "quần tất", "tất thể thao",
-      "socks", "stockings", "tights"], "Socks"),
+      "socks", "stockings", "tights"],
+     ["Vớ", "Socks"]),
 
     # Underwear – do lot, do ngu
     (["đồ lót", "đồ ngủ", "nội y", "quần lót", "áo ngực",
       "pyjama", "bra",
-      "underwear", "lingerie", "bralette", "pyjamas"], "Underwear"),
+      "underwear", "lingerie", "bralette", "pyjamas"],
+     ["Đồ lót", "Underwear"]),
 ]
 
 
@@ -123,45 +132,52 @@ async def _search_products(user_msg: str, ai_reply: str) -> list[dict]:
 
     # 1. Tim category tu user_msg truoc
     matched_categories: set[str] = set()
-    for keywords, cat in _VI_TO_EN_CAT:
+    for keywords, cats in _VI_TO_EN_CAT:
         if any(_word_match(kw, user_lower) for kw in keywords):
-            matched_categories.add(cat)
+            matched_categories.update(cats)
 
     # 2. Neu chua tim duoc thi moi xet ai_reply
     if not matched_categories:
-        for keywords, cat in _VI_TO_EN_CAT:
+        for keywords, cats in _VI_TO_EN_CAT:
             if any(_word_match(kw, reply_lower) for kw in keywords):
-                matched_categories.add(cat)
+                matched_categories.update(cats)
 
-    # 3. Tim them tu tieng Anh thuan de match ten san pham
-    en_stopwords = {
+    # 3. Neu khong co category, tim tu tieng Anh thuan tu USER MSG
+    #    de match ten san pham. KHONG dung tu reply (de tranh nhieu
+    #    tu tieng Viet khong dau bi nham la tu tieng Anh).
+    stopwords = {
+        # tieng Anh thong dung
         "the", "and", "for", "with", "you", "can", "our", "are", "this",
         "that", "have", "will", "your", "from", "they", "what", "when",
         "how", "also", "some", "more", "very", "well", "not", "but",
-        "like", "than", "here", "just", "also",
+        "like", "than", "here", "just", "want", "need", "show", "give",
+        "find", "look", "tell", "know", "make", "take", "good", "best",
+        # tieng Viet khong dau (tranh nham la English) - cac tu pho bien
+        "thanh", "danh", "trang", "theo", "sach", "giao", "phai", "minh",
+        "ban", "toi", "shop", "shopbot", "suggest", "recommend",
     }
-    combined_lower = f"{user_lower} {reply_lower}"
-    en_words = [
-        w.strip(".,!?:;\"'*()-")
-        for w in re.split(r"\s+", combined_lower)
-        if re.match(r'^[a-z]{4,}$', w.strip(".,!?:;\"'*()-"))
-        and w.strip(".,!?:;\"'*()-") not in en_stopwords
-    ]
 
-    # 4. Build MongoDB query
-    query_parts: list[dict] = []
+    # 4. Build MongoDB query - strict: uu tien category neu co
+    query: dict | None = None
     if matched_categories:
-        query_parts.append({"category": {"$in": list(matched_categories)}})
-    if en_words:
-        words_sorted = sorted(set(en_words), key=len, reverse=True)[:5]
-        name_pattern = "|".join(re.escape(w) for w in words_sorted)
-        query_parts.append({"name": {"$regex": name_pattern, "$options": "i"}})
+        query = {"category": {"$in": list(matched_categories)}}
+    else:
+        en_words = [
+            w.strip(".,!?:;\"'*()-")
+            for w in re.split(r"\s+", user_lower)
+            if re.match(r'^[a-z]{4,}$', w.strip(".,!?:;\"'*()-"))
+            and w.strip(".,!?:;\"'*()-") not in stopwords
+        ]
+        if en_words:
+            words_sorted = sorted(set(en_words), key=len, reverse=True)[:3]
+            name_pattern = "|".join(re.escape(w) for w in words_sorted)
+            query = {"name": {"$regex": name_pattern, "$options": "i"}}
 
-    if query_parts:
+    if query is not None:
         cursor = collection.find(
-            {"$or": query_parts},
+            query,
             {"_id": 1, "name": 1, "price": 1, "category": 1, "image_url": 1, "rating": 1}
-        ).limit(4)
+        ).sort("rating", -1).limit(4)
         docs = await cursor.to_list(4)
         if docs:
             for d in docs:
@@ -266,8 +282,8 @@ async def chat(request: ChatRequest):
                 temperature=0.7,
             )
             reply_text = completion.choices[0].message.content or "Xin loi, toi khong the tra loi."
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Groq API failed: %s: %s", type(e).__name__, e)
 
     # ── Thu Gemini thu hai (secondary) ──
     if reply_text is None and gemini_key:
@@ -294,11 +310,12 @@ async def chat(request: ChatRequest):
                 )
             )
             reply_text = response.text or "Xin loi, toi khong the tra loi."
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning("Gemini API failed: %s: %s", type(e).__name__, e)
 
     # ── Rule-based fallback cuoi cung ──
     if reply_text is None:
+        logger.warning("All AI providers failed - using rule-based fallback")
         reply_text = _fallback_response(request.message)
 
     # Tim san pham dua tren user message VA AI reply
@@ -311,10 +328,10 @@ async def debug_search(msg: str = "", reply: str = ""):
     """Endpoint debug: test _search_products truc tiep."""
     combined = f"{msg} {reply}".lower().strip()
     matched_cats = set()
-    for keywords, en_cat in _VI_TO_EN_CAT:
+    for keywords, cats in _VI_TO_EN_CAT:
         for kw in keywords:
             if _word_match(kw, combined):
-                matched_cats.add(en_cat)
+                matched_cats.update(cats)
                 break
     products = await _search_products(msg, reply)
     return {

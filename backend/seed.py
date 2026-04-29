@@ -7,8 +7,17 @@ import asyncio
 import csv
 import os
 import random
+import shutil
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Windows console default cp1252 khong in duoc tieng Viet -> ep utf-8
+if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -16,90 +25,47 @@ from passlib.context import CryptContext
 
 load_dotenv()
 
-MONGO_URL = os.getenv("MONGO_URL")
-DB_NAME   = os.getenv("DB_NAME", "shop_ai_db")
+MONGO_URL    = os.getenv("MONGO_URL")
+DB_NAME      = os.getenv("DB_NAME", "shop_ai_db")
+BACKEND_URL  = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 DATA_DIR        = Path(__file__).parent / "data"
-ARTICLES_CSV    = DATA_DIR / "articles.csv"
 CUSTOMERS_CSV   = DATA_DIR / "customers.csv"
+IMG_DEST_DIR    = Path(__file__).parent / "uploads" / "products"   # copy anh ra day de FastAPI serve
 
-# ── Ánh xạ garment_group_name → danh muc tieng Viet ──────────
-CATEGORY_MAP = {
-    # Upper body / shirts / tops
-    "Jersey Basic":        "Áo",
-    "Jersey Fancy":        "Áo",
-    "Knitwear":            "Áo",
-    "Blouses":             "Áo",
-    "Shirts":              "Áo",
-    "Sweater":             "Áo",
-    "Jacket & Waistcoat":  "Áo",
-    "Outdoor":             "Áo",
-    # Lower body / bottoms
-    "Trousers Denim":      "Quần",
-    "Trousers":            "Quần",
-    "Shorts":              "Quần",
-    "Skirts":              "Quần",
-    # Full body / dresses
-    "Dresses Ladies":      "Váy",
-    "Dresses Girls":       "Váy",
-    "Dressed":             "Váy",
-    "Dresses/Skirts girls":"Váy",
-    "Jumpsuit":            "Váy",
-    # Shoes
-    "Shoes":               "Giày",
-    "Shoe":                "Giày",
-    # Bags (H&M khong co, them thu cong)
-    "Bags":                "Túi",
-    "Bag":                 "Túi",
-    # Accessories
-    "Accessories":         "Phụ kiện",
-    "Hat/beanie":          "Phụ kiện",
-    "Gloves":              "Phụ kiện",
-    "Scarf":               "Phụ kiện",
-    "Belt":                "Phụ kiện",
-    "Sunglasses":          "Phụ kiện",
-    "Watches":             "Đồng hồ",
-    # Underwear / nightwear
-    "Under-, Nightwear":   "Đồ lót",
-    "Underwear":           "Đồ lót",
-    "Nightwear":           "Đồ lót",
-    "Lingerie":            "Đồ lót",
-    # Swimwear
-    "Swimwear":            "Đồ bơi",
-    # Socks
-    "Socks and Tights":    "Vớ",
-    "Socks & Tights":      "Vớ",
-}
+from data_utils import (
+    ARTICLES_CSV, IMG_DIR as IMG_SOURCE_DIR,
+    CATEGORIES, PER_CATEGORY,
+    categorize_article, article_image_path,
+)
 
-# ── Khoang gia theo category (VND) ───────────────────
+# ── Khoang gia theo category VN (VND) ───────────────────
 PRICE_RANGES = {
-    "Tops":        (150_000, 800_000),
-    "Bottoms":     (200_000, 900_000),
-    "Shoes":       (300_000, 2_000_000),
-    "Bags":        (400_000, 3_000_000),
-    "Accessories": (100_000, 500_000),
-    "Dresses":     (250_000, 1_200_000),
-    "Watches":     (500_000, 5_000_000),
-    "Underwear":   (100_000, 400_000),
-    "Swimwear":    (200_000, 600_000),
-    "Socks":       (50_000, 200_000),
+    "Áo":       (150_000, 800_000),
+    "Quần":     (200_000, 900_000),
+    "Váy":      (250_000, 1_200_000),
+    "Giày":     (300_000, 2_000_000),
+    "Túi":      (400_000, 3_000_000),
+    "Phụ kiện": (100_000, 500_000),
+    "Đồ lót":   (100_000, 400_000),
+    "Đồ bơi":   (200_000, 600_000),
+    "Vớ":       (50_000, 200_000),
 }
 
 DEFAULT_PRICE_RANGE = (100_000, 1_000_000)
 
 # ── 4 nhom nguoi dung voi so thich khac nhau (de train CF) ───
-# Moi nhom: (ten_nhom, danh_sach_category_uu_tien, khoang_gia_max, rating_min)
+# Moi nhom: (ten_nhom, danh_sach_category_uu_tien VN, khoang_gia_max, rating_min)
 USER_SEGMENTS = [
-    ("budget",  ["Tops", "Bottoms", "Socks"],             500_000,  3.0),
-    ("fashion", ["Dresses", "Bags", "Accessories"],      3_000_000,  4.0),
-    ("sport",   ["Shoes", "Tops", "Accessories"],        1_000_000,  3.5),
-    ("luxury",  ["Watches", "Bags", "Shoes"],            5_000_000,  4.5),
+    ("budget",  ["Áo", "Quần", "Vớ"],          500_000,  3.0),
+    ("fashion", ["Váy", "Túi", "Phụ kiện"],   3_000_000,  4.0),
+    ("sport",   ["Giày", "Áo", "Phụ kiện"],   1_000_000,  3.5),
+    ("luxury",  ["Túi", "Giày", "Phụ kiện"],  5_000_000,  4.5),
 ]
 
-NUM_PRODUCTS   = 300  # lay 300 san pham dau tu articles.csv
-NUM_USERS      = 20   # 20 nguoi dung fake (5 user moi segment)
+NUM_USERS             = 20  # 20 nguoi dung fake (5 user moi segment)
 INTERACTIONS_PER_USER = 30  # moi user tuong tac khoang 30 san pham
 
 
@@ -107,68 +73,91 @@ INTERACTIONS_PER_USER = 30  # moi user tuong tac khoang 30 san pham
 # Doc CSV
 # ═══════════════════════════════════════════════════════════════
 
-def read_articles(limit: int) -> list[dict]:
-    products = []
+def _copy_article_image(article_id: str) -> bool:
+    """
+    Copy anh san pham H&M tu data/images/{prefix}/{article_id}.jpg
+    sang uploads/products/{article_id}.jpg.
+    Tra ve True neu copy thanh cong (anh ton tai), False neu khong co anh.
+    """
+    if not article_id:
+        return False
+    src = article_image_path(article_id)
+    if not src.exists():
+        return False
+    dst = IMG_DEST_DIR / f"{article_id}.jpg"
+    if not dst.exists():  # idempotent
+        shutil.copy2(src, dst)
+    return True
+
+
+def read_articles_balanced() -> list[dict]:
+    """
+    Quet articles.csv, lay toi da PER_CATEGORY san pham moi category.
+    Chi nhan san pham CO anh local (loai bo nhung san pham khong co anh
+    de tranh dung picsum/placeholder).
+    """
+    if not IMG_SOURCE_DIR.exists():
+        print(f"[ERROR] Khong tim thay {IMG_SOURCE_DIR}")
+        print(f"        Chay 'python download_hm_images.py' truoc de tai anh.")
+        return []
+
+    IMG_DEST_DIR.mkdir(parents=True, exist_ok=True)
+
+    products_by_cat: dict[str, list[dict]] = {c: [] for c in CATEGORIES}
+    skipped_no_image = 0
+    skipped_no_category = 0
+
     with open(ARTICLES_CSV, encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        for i, row in enumerate(reader):
-            if i >= limit:
+        for row in reader:
+            # Stop som neu tat ca category da day
+            if all(len(products_by_cat[c]) >= PER_CATEGORY for c in CATEGORIES):
                 break
 
-            raw_group = row.get("garment_group_name", "").strip()
-            category  = CATEGORY_MAP.get(raw_group, "Phụ kiện")
+            cat = categorize_article(row)
+            if cat is None:
+                skipped_no_category += 1
+                continue
+            if len(products_by_cat[cat]) >= PER_CATEGORY:
+                continue
 
-            lo, hi  = PRICE_RANGES.get(category, DEFAULT_PRICE_RANGE)
-            price   = round(random.randint(lo, hi) / 1000) * 1000
+            article_id = row.get("article_id", "").strip()
+            if not _copy_article_image(article_id):
+                skipped_no_image += 1
+                continue
 
-            rating  = round(random.uniform(2.8, 5.0), 1)
-            stock   = random.randint(5, 200)
+            lo, hi = PRICE_RANGES.get(cat, DEFAULT_PRICE_RANGE)
+            price  = round(random.randint(lo, hi) / 1000) * 1000
+            rating = round(random.uniform(2.8, 5.0), 1)
+            stock  = random.randint(5, 200)
 
-            name = row.get("prod_name", f"San pham {i+1}").strip()
+            name = row.get("prod_name", "").strip() or f"San pham {article_id}"
             desc = row.get("detail_desc", "").strip() or "San pham chat luong cao."
+            image_url = f"{BACKEND_URL}/uploads/products/{article_id}.jpg"
 
-            img_seed  = (i + 1) * 7
-            image_url = f"https://picsum.photos/seed/{img_seed}/400/400"
-
-            products.append({
+            products_by_cat[cat].append({
                 "name":        name,
                 "price":       float(price),
                 "description": desc,
                 "image_url":   image_url,
-                "category":    category,
+                "category":    cat,
                 "rating":      rating,
                 "stock":       stock,
+                "article_id":  article_id,
             })
 
-    # ── Them san pham Bags va Watches thu cong (H&M khong co) ──
-    extra_products = [
-        {"name": "Genuine Leather Handbag", "price": 850_000.0, "description": "Genuine cowhide leather handbag, elegant and sophisticated design.", "image_url": "https://picsum.photos/seed/501/400/400", "category": "Bags", "rating": 4.5, "stock": 30},
-        {"name": "Mini Crossbody Bag", "price": 320_000.0, "description": "Compact crossbody bag, perfect for casual outings.", "image_url": "https://picsum.photos/seed/502/400/400", "category": "Bags", "rating": 4.2, "stock": 50},
-        {"name": "Canvas Tote Bag Unisex", "price": 250_000.0, "description": "Spacious canvas tote bag, versatile for everyday use.", "image_url": "https://picsum.photos/seed/503/400/400", "category": "Bags", "rating": 4.0, "stock": 80},
-        {"name": "Premium Office Shoulder Bag", "price": 1_200_000.0, "description": "Elegant leather office bag with a dedicated laptop compartment.", "image_url": "https://picsum.photos/seed/504/400/400", "category": "Bags", "rating": 4.7, "stock": 20},
-        {"name": "Evening Clutch Bag", "price": 450_000.0, "description": "Sparkling rhinestone evening clutch bag for special occasions.", "image_url": "https://picsum.photos/seed/505/400/400", "category": "Bags", "rating": 4.3, "stock": 35},
-        {"name": "Trendy Women Backpack", "price": 380_000.0, "description": "Stylish small backpack, water-resistant material.", "image_url": "https://picsum.photos/seed/506/400/400", "category": "Bags", "rating": 4.1, "stock": 60},
-        {"name": "Embroidered Bucket Bag", "price": 290_000.0, "description": "Unique embroidered bucket bag with bohemian style.", "image_url": "https://picsum.photos/seed/507/400/400", "category": "Bags", "rating": 3.9, "stock": 45},
-        {"name": "Metal Chain Bag", "price": 550_000.0, "description": "Metal chain strap bag, Korean fashion-inspired style.", "image_url": "https://picsum.photos/seed/508/400/400", "category": "Bags", "rating": 4.4, "stock": 25},
-        {"name": "Outdoor Fanny Pack", "price": 180_000.0, "description": "Convenient waist/fanny pack for outdoor activities.", "image_url": "https://picsum.photos/seed/509/400/400", "category": "Bags", "rating": 3.8, "stock": 70},
-        {"name": "Square Box PU Leather Bag", "price": 420_000.0, "description": "Luxurious square box-shaped PU leather bag.", "image_url": "https://picsum.photos/seed/510/400/400", "category": "Bags", "rating": 4.2, "stock": 40},
-        {"name": "Men's Brown Leather Watch", "price": 1_500_000.0, "description": "Mechanical men's watch with brown leather strap and white dial.", "image_url": "https://picsum.photos/seed/521/400/400", "category": "Watches", "rating": 4.6, "stock": 15},
-        {"name": "Women's Metal Strap Watch", "price": 980_000.0, "description": "Women's watch with rose gold metal strap and small round face.", "image_url": "https://picsum.photos/seed/522/400/400", "category": "Watches", "rating": 4.4, "stock": 20},
-        {"name": "Smartwatch Fitness Tracker", "price": 2_500_000.0, "description": "Smartwatch with health monitoring and phone notifications.", "image_url": "https://picsum.photos/seed/523/400/400", "category": "Watches", "rating": 4.8, "stock": 10},
-        {"name": "Couple Matching Watch Set", "price": 1_200_000.0, "description": "Matching his & hers watch set with minimalist design.", "image_url": "https://picsum.photos/seed/524/400/400", "category": "Watches", "rating": 4.3, "stock": 18},
-        {"name": "Sports Water-Resistant Watch", "price": 750_000.0, "description": "Sports watch with 50m water resistance and silicone strap.", "image_url": "https://picsum.photos/seed/525/400/400", "category": "Watches", "rating": 4.2, "stock": 25},
-        {"name": "Skeleton Mechanical Watch", "price": 3_200_000.0, "description": "Open-heart skeleton mechanical watch, artistic design.", "image_url": "https://picsum.photos/seed/526/400/400", "category": "Watches", "rating": 4.7, "stock": 8},
-        {"name": "Vintage Luminous Watch", "price": 650_000.0, "description": "Retro vintage-style watch with luminous hands.", "image_url": "https://picsum.photos/seed/527/400/400", "category": "Watches", "rating": 4.0, "stock": 30},
-        {"name": "Floral Maxi Summer Dress", "price": 380_000.0, "description": "Light floral maxi dress, perfect for summer wear.", "image_url": "https://picsum.photos/seed/531/400/400", "category": "Dresses", "rating": 4.3, "stock": 45},
-        {"name": "A-Line Office Dress", "price": 450_000.0, "description": "Elegant A-line office dress in linen fabric.", "image_url": "https://picsum.photos/seed/532/400/400", "category": "Dresses", "rating": 4.5, "stock": 35},
-        {"name": "Bodycon Knit Winter Dress", "price": 520_000.0, "description": "Warm bodycon knit dress in Korean style.", "image_url": "https://picsum.photos/seed/533/400/400", "category": "Dresses", "rating": 4.2, "stock": 40},
-        {"name": "Women's Skinny Jeans", "price": 350_000.0, "description": "Skinny fit jeans with 4-way stretch fabric.", "image_url": "https://picsum.photos/seed/541/400/400", "category": "Bottoms", "rating": 4.4, "stock": 60},
-        {"name": "Men's Slim Fit Trousers", "price": 420_000.0, "description": "Slim fit formal trousers for office wear.", "image_url": "https://picsum.photos/seed/542/400/400", "category": "Bottoms", "rating": 4.3, "stock": 40},
-        {"name": "White Unisex Sneakers", "price": 650_000.0, "description": "Low-top white sneakers with cushioned sole.", "image_url": "https://picsum.photos/seed/551/400/400", "category": "Shoes", "rating": 4.6, "stock": 55},
-        {"name": "Pointed-Toe High Heels", "price": 480_000.0, "description": "7cm pointed-toe heels in classic black.", "image_url": "https://picsum.photos/seed/552/400/400", "category": "Shoes", "rating": 4.2, "stock": 30},
-        {"name": "Flat Summer Sandals", "price": 280_000.0, "description": "Breathable flat sandals for warm weather.", "image_url": "https://picsum.photos/seed/553/400/400", "category": "Shoes", "rating": 4.0, "stock": 70},
-    ]
-    products.extend(extra_products)
+    products = [p for cat_list in products_by_cat.values() for p in cat_list]
+
+    print(f"    -> Phan bo theo category:")
+    for cat in CATEGORIES:
+        n = len(products_by_cat[cat])
+        flag = "OK" if n >= PER_CATEGORY else f"THIEU - chay download_hm_images.py de tai them"
+        print(f"       {cat:12s}: {n:3d}/{PER_CATEGORY}  [{flag}]")
+    if skipped_no_image > 0:
+        print(f"    -> Bo qua {skipped_no_image} san pham khong co anh trong images/")
+    if skipped_no_category > 0:
+        print(f"    -> Bo qua {skipped_no_category} san pham ngoai pham vi (Cosmetic/Furniture/Stationery...)")
+
     return products
 
 
@@ -311,9 +300,10 @@ async def main():
         print("\nHuong dan:")
         print("  1. Tao thu muc: backend/data/")
         print("  2. Tai tu Kaggle: kaggle.com/competitions/h-and-m-personalized-fashion-recommendations")
-        print("     - articles.csv  (khoang 35MB)")
-        print("     - customers.csv (khoang 200MB)")
-        print("  3. Giai nen va dat vao backend/data/")
+        print("     - articles.csv  (~35MB)")
+        print("     - customers.csv (~200MB)")
+        print("  3. Tai anh chon loc: python download_hm_images.py")
+        print("     (chi tai ~270 anh ~40MB, KHONG can tai images.zip 25GB)")
         print("  4. Chay lai: python seed.py")
         return
 
@@ -323,21 +313,30 @@ async def main():
     db = client[DB_NAME]
 
     # --- Xoa du lieu cu ---
-    print("[2/5] Xoa du lieu cu (products, users fake, interactions)...")
+    print("[2/5] Xoa du lieu cu (products, users fake, interactions, anh san pham)...")
     await db["products"].delete_many({})
     await db["users"].delete_many({"role": "user"})   # giu admin neu co
     await db["interactions"].delete_many({})
     await db["carts"].delete_many({})
 
+    # Xoa anh san pham cu de tranh tich tu file rac
+    if IMG_DEST_DIR.exists():
+        shutil.rmtree(IMG_DEST_DIR)
+    IMG_DEST_DIR.mkdir(parents=True, exist_ok=True)
+
     # --- Doc va insert products ---
-    print(f"[3/5] Doc {NUM_PRODUCTS} san pham tu articles.csv...")
-    raw_products = read_articles(NUM_PRODUCTS)
+    target_total = PER_CATEGORY * len(CATEGORIES)
+    print(f"[3/5] Doc articles.csv (target ~{target_total} san pham, {PER_CATEGORY}/category)...")
+    raw_products = read_articles_balanced()
+    if not raw_products:
+        print("[ERROR] Khong co san pham nao duoc nap. Dung seed.")
+        client.close()
+        return
     product_result = await db["products"].insert_many(raw_products)
-    # Lay lai voi _id thuc te
     inserted_ids  = product_result.inserted_ids
     product_docs  = await db["products"].find(
         {"_id": {"$in": inserted_ids}}
-    ).to_list(NUM_PRODUCTS)
+    ).to_list(len(inserted_ids))
     print(f"    -> Da them {len(product_docs)} san pham")
 
     # --- Doc va insert users ---
